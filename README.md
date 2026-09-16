@@ -1,10 +1,6 @@
-# Resume Tailor
+# KnapResume
 
-[![Version](https://img.shields.io/badge/version-0.1.0-8b5cf6.svg)](https://github.com/rotsl/resume-tailor/releases/tag/0.1.0)
-[![Try it out](https://img.shields.io/badge/Try_it_out-Live_Demo-0f172a?logo=githubpages&logoColor=white)](https://rotsl.github.io/resume-tailor)
-[![Visitors](https://visitor-badge.laobi.icu/badge?page_id=rotsl.resume-tailor&title=visitors&left_text=visitors)](https://rotsl.github.io/resume-tailor)
-
-Resume Tailor takes a job description and your existing resume, then produces:
+KnapResume takes a job description and your existing resume, then produces:
 
 - a tailored resume
 - a matching cover letter
@@ -18,8 +14,6 @@ It can run three ways:
 
 If you enable Notion, each run is automatically logged there via **Notion MCP** — a model-context protocol that routes all Notion operations through an MCP server for secure, auditable API interactions.
 
-**Live demo:** [rotsl.github.io/resume-tailor](https://rotsl.github.io/resume-tailor)
-**Privacy policy:** [rotsl.github.io/resume-tailor/privacy.html](https://rotsl.github.io/resume-tailor/privacy.html)
 
 ## What it actually does
 
@@ -86,7 +80,7 @@ Gemini key: [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
 
 ## Notion MCP Architecture
 
-Resume Tailor uses **Notion MCP** (Model Context Protocol) to interact with Notion. Here's how it works:
+KnapResume uses **Notion MCP** (Model Context Protocol) to interact with Notion. Here's how it works:
 
 ```
 Your app request
@@ -160,18 +154,18 @@ You only need one provider key to run the app. The Notion values are optional un
 
 ## Notion setup
 
-Resume Tailor logs job applications and tailored outputs to Notion via **Notion MCP** — a protocol that routes all Notion API calls through an MCP server.
+KnapResume logs job applications and tailored outputs to Notion via **Notion MCP** — a protocol that routes all Notion API calls through an MCP server.
 
 ### Step 1: Create a Notion integration
 
 1. Go to [notion.so/my-integrations](https://www.notion.so/my-integrations)
 2. Click "Create new integration"
-3. Name it (e.g., "Resume Tailor")
+3. Name it (e.g., "KnapResume")
 4. Copy the **Internal Integration Token** (your `NOTION_API_KEY`)
 
 ### Step 2: Share a page with your integration
 
-1. In Notion, open the page where you want Resume Tailor to create databases
+1. In Notion, open the page where you want KnapResume to create databases
 2. Click the **⋯** menu → **Connections**
 3. Search for your integration name and connect it
 
@@ -194,7 +188,7 @@ This script:
 - ✅ Configures required properties (Name, Status, Company, Date, etc.)
 - ✅ Writes the database IDs to `.env` automatically
 
-**How it works:** The setup script uses Notion MCP to create the databases. Each time Resume Tailor runs, it uses MCP to:
+**How it works:** The setup script uses Notion MCP to create the databases. Each time KnapResume runs, it uses MCP to:
 - Log job applications to the "Job Applications" database
 - Save tailored resumes and cover letters to the "Resume & Cover Letter Outputs" database
 - Query past applications via the CLI `history` command

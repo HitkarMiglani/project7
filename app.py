@@ -1,5 +1,5 @@
 """
-app.py  — Local Flask server (python app.py → http://localhost:5000)
+app.py  — KnapResume Local Flask server (python app.py → http://localhost:5000)
 For GitHub Pages deployment, see docs/index.html + .github/workflows/deploy.yml
 """
 
@@ -15,7 +15,6 @@ from src.parser import extract_text
 from src.web_context import fetch_company_context
 from src.tailor import tailor_resume, generate_cover_letter
 from src.pdf_generator import generate_resume_pdf, generate_cover_letter_pdf
-from src.notion_integration import log_job_to_notion, save_outputs_to_notion
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
@@ -98,16 +97,9 @@ def _run(job_id, provider, model, api_key,
         generate_resume_pdf(tailored, rp)
         generate_cover_letter_pdf(cover, cp)
 
-        step(5); notion_saved = False
-        if os.environ.get("NOTION_API_KEY") and os.environ.get("NOTION_JOBS_DB_ID"):
-            try:
-                nid = log_job_to_notion(job_title, company, jd[:500])
-                save_outputs_to_notion(job_title, company, tailored, cover, nid)
-                notion_saved = True
-            except Exception: pass
-
-        jobs[job_id]={"status":"done","step":6,"resume_path":rp,"cover_path":cp,
-                      "company":company,"job_title":job_title,"notion_saved":notion_saved}
+        step(5)
+        jobs[job_id]={"status":"done","step":5,"resume_path":rp,"cover_path":cp,
+                      "company":company,"job_title":job_title}
     except Exception as e:
         jobs[job_id]={"status":"error","error":str(e)}
 
@@ -128,5 +120,5 @@ def download(job_id, doc):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    print(f"\n🎯 Resume Tailor → http://localhost:{port}\n")
+    print(f"\n🎯 KnapResume → http://localhost:{port}\n")
     app.run(host="0.0.0.0", port=port, debug=False)

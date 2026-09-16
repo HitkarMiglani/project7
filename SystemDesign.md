@@ -2,8 +2,8 @@
 
 > **Document status:** Approved
 > **Last updated:** 2026-09-15
-> **Owner:** <author>
-> **Reviewers:** <team>
+> **Owner:** HitkarMiglani
+> **Reviewers:** HM
 
 ---
 

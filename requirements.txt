@@ -8,10 +8,6 @@ pdfplumber>=0.10.0
 reportlab>=4.0.0
 python-docx>=1.1.0
 
-# Notion Integration via MCP
-mcp>=1.0.0
-notion-client>=2.2.0
-
 # Utilities
 requests>=2.31.0
 python-dotenv>=1.0.0

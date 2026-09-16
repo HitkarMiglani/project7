@@ -1,11 +1,11 @@
 """
 main.py
-CLI entry point for the Resume Tailor system.
+CLI entry point for KnapResume.
 Supports job URL, job description text, and file uploads for both
 job description and resume.
 
 Usage:
-  python main.py                         # Interactive wizard
+  python main.py                         # Interactive wizard / tailor
   python main.py --help                  # Show all options
 """
 
@@ -29,14 +29,8 @@ from src.parser import extract_text
 from src.web_context import fetch_company_context
 from src.tailor import tailor_resume, generate_cover_letter
 from src.pdf_generator import generate_resume_pdf, generate_cover_letter_pdf
-from src.notion_integration import (
-    log_job_to_notion,
-    save_outputs_to_notion,
-    read_job_from_notion_page,
-    list_past_applications,
-)
 
-app = typer.Typer(help="🎯 Resume Tailor — AI-powered resume & cover letter tailoring")
+app = typer.Typer(help="🎯 KnapResume — ATS-optimized resume tailoring with knapsack allocation & verification")
 console = Console()
 
 OUTPUT_DIR = Path("outputs")
@@ -47,8 +41,8 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 def _validate_env():
     missing = []
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        missing.append("ANTHROPIC_API_KEY")
+    if not os.environ.get("ANTHROPIC_API_KEY") and not os.environ.get("GEMINI_API_KEY"):
+        missing.append("ANTHROPIC_API_KEY or GEMINI_API_KEY")
     if missing:
         console.print(
             f"[bold red]❌ Missing environment variables: {', '.join(missing)}[/]\n"
@@ -62,13 +56,8 @@ def _get_job_description(
     job_url: str = "",
     job_file: str = "",
     job_text: str = "",
-    notion_page_id: str = "",
 ) -> tuple[str, str]:
     """Returns (job_description_text, job_url)."""
-    if notion_page_id:
-        console.print("📓 Reading job description from Notion page...")
-        return read_job_from_notion_page(notion_page_id), ""
-
     if job_file:
         console.print(f"📄 Reading job description from file: {job_file}")
         return extract_text(job_file, Path(job_file).name), ""
@@ -150,10 +139,10 @@ def tailor(
     resume_file: Optional[str] = typer.Option(None, "--resume", "-r", help="Path to resume PDF/DOCX/TXT"),
     job_file: Optional[str] = typer.Option(None, "--job-file", "-jf", help="Path to job description PDF/DOCX/TXT"),
     job_url: Optional[str] = typer.Option(None, "--job-url", "-u", help="URL of the job posting"),
-    notion_page: Optional[str] = typer.Option(None, "--notion-page", "-n", help="Notion page ID containing the job description"),
     output_name: Optional[str] = typer.Option(None, "--output", "-o", help="Base name for output files (no extension)"),
-    no_notion: bool = typer.Option(False, "--no-notion", help="Skip saving to Notion"),
     skip_web: bool = typer.Option(False, "--skip-web", help="Skip web context fetching"),
+    provider: str = typer.Option("claude", "--provider", "-p", help="LLM Provider: claude or gemini"),
+    model: str = typer.Option("", "--model", "-m", help="Specific model string (e.g. claude-opus-4-5, gemini-2.5-flash)"),
 ):
     """
     🎯 Tailor your resume and generate a cover letter for a specific job.
@@ -161,7 +150,7 @@ def tailor(
     Outputs two PDFs: tailored_resume.pdf and cover_letter.pdf
     """
     console.print(Panel.fit(
-        "[bold cyan]Resume Tailor[/] — Powered by Claude AI + Notion MCP",
+        "[bold cyan]KnapResume[/] — ATS Optimization with Knapsack Allocation & Verification",
         border_style="cyan"
     ))
 
@@ -175,7 +164,6 @@ def tailor(
         job_desc, detected_url = _get_job_description(
             job_url=job_url or "",
             job_file=job_file or "",
-            notion_page_id=notion_page or "",
         )
         if not job_desc.strip():
             console.print("[red]❌ Job description is empty. Aborting.[/]")
@@ -203,19 +191,19 @@ def tailor(
             progress.update(task, description="✅ Web context fetched")
 
     # ── Step 3: Tailor resume ────────────────────────────────────────────────
-    console.print("[bold cyan]Step 1/3:[/] Tailoring resume with Claude AI...")
+    console.print(f"[bold cyan]Step 1/3:[/] Tailoring resume with {provider.title()} AI...")
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"),
                   transient=True) as progress:
         task = progress.add_task("Analysing and tailoring...", total=None)
-        tailored = tailor_resume(resume, job_desc, web_context)
+        tailored = tailor_resume(resume, job_desc, web_context, provider=provider, model=model or "claude-opus-4-5")
         progress.update(task, description="✅ Resume tailored")
 
     # ── Step 4: Generate cover letter ────────────────────────────────────────
-    console.print("[bold cyan]Step 2/3:[/] Generating cover letter with Claude AI...")
+    console.print(f"[bold cyan]Step 2/3:[/] Generating cover letter with {provider.title()} AI...")
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"),
                   transient=True) as progress:
         task = progress.add_task("Writing cover letter...", total=None)
-        cover = generate_cover_letter(resume, job_desc, tailored, web_context)
+        cover = generate_cover_letter(resume, job_desc, tailored, web_context, provider=provider, model=model or "claude-opus-4-5")
         progress.update(task, description="✅ Cover letter generated")
 
     # ── Step 5: Generate PDFs ────────────────────────────────────────────────
@@ -227,14 +215,6 @@ def tailor(
     generate_resume_pdf(tailored, resume_pdf_path)
     generate_cover_letter_pdf(cover, cover_pdf_path)
 
-    # ── Step 6: Save to Notion ───────────────────────────────────────────────
-    notion_job_id = None
-    if not no_notion and os.environ.get("NOTION_API_KEY"):
-        console.print("📓 Saving to Notion...")
-        notion_job_id = log_job_to_notion(job_title, company, job_desc[:500])
-        save_outputs_to_notion(job_title, company, tailored, cover, notion_job_id)
-        console.print("✅ Saved to Notion databases")
-
     # ── Done ─────────────────────────────────────────────────────────────────
     console.print(Panel(
         f"[bold green]✅ Done![/]\n\n"
@@ -243,25 +223,6 @@ def tailor(
         title="Output Files",
         border_style="green",
     ))
-
-
-# ── History Command ───────────────────────────────────────────────────────────
-
-@app.command()
-def history(
-    limit: int = typer.Option(10, "--limit", "-l", help="Number of past applications to show"),
-):
-    """📋 List past job applications logged in Notion."""
-    apps = list_past_applications(limit)
-    if not apps:
-        console.print("[yellow]No past applications found in Notion.[/]")
-        return
-
-    console.print(f"\n[bold]Last {len(apps)} applications:[/]\n")
-    for a in apps:
-        console.print(f"  [cyan]{a['date']}[/]  {a['title']}  [{a['status']}]")
-        if a.get("url"):
-            console.print(f"           [dim]{a['url']}[/]")
 
 
 # ── Entry Point ───────────────────────────────────────────────────────────────
