@@ -56,10 +56,113 @@
 | **ADR-005** | PDF Generation | Retain ReportLab flowables | 392 lines of working flowable layout. Avoids WeasyPrint C-dependencies (Cairo/Pango). |
 | **ADR-006** | Vector Storage | Binary float32 buffer (`tobytes()` / `frombuffer()`) | Safer, faster, and more portable than Python `pickle` objects in SQLite BLOBs. |
 | **ADR-007** | External Logging | Drop Notion MCP in favor of pure SQLite | Eliminates external Node.js server dependency (`@notionhq/notion-mcp-server`), removes third-party token setup, keeps all run logs local & private. |
+| **ADR-008** | Quality Assurance | Phase-level test & build gate | Execute full test suite (`pytest -v`) and resolve all regressions at the conclusion of each full phase before transitioning to the next phase. |
 
 ---
 
 ## 📖 Chronological Iteration Entries
+
+---
+
+### [2026-09-16] Iteration Entry: Phase 1 — Stage 1.1 (Database Architecture & ORM Schema)
+- **Author:** Agent
+- **Status:** Completed
+
+#### 1. Objective & Scope
+Define the core relational data models in `src/models.py` matching the entity-relationship design in `SystemDesign.md` Section 6. Initialize Alembic migrations, generate the baseline schema migration, and implement unit test coverage verifying database constraints, foreign key cascades, JSON column handling, and float32 vector embedding serialization.
+
+#### 2. Key Decisions & Technical Reasoning
+- **Decision:** Implement binary serialization methods (`set_embedding` and `get_embedding`) directly on `ProfileFact` and `JDRequirement` using `np.ndarray.tobytes()` and `np.frombuffer(blob, dtype=np.float32)`.
+  - **Reasoning:** Storing vectors as raw 384-dimensional float32 binary byte streams in SQLite `LargeBinary` columns avoids the Python version fragility and security risks of `pickle`, while offering zero-overhead serialization and deserialization.
+- **Decision:** Include `is_mandatory` (boolean) on `ProfileFact`.
+  - **Reasoning:** In Stage 3.2 (Knapsack DP Allocator), certain baseline facts (e.g. candidate name, dates, degree, employer title) must never be dropped by the optimization algorithm regardless of score; optional achievement bullets will compete for capacity.
+- **Decision:** Use timezone-aware UTC timestamps (`datetime.now(timezone.utc)`) across all models.
+  - **Reasoning:** Avoids Python 3.12+ `datetime.utcnow()` deprecation warnings and ensures consistent UTC storage.
+- **Decision:** Configure full cascade delete rules (`ondelete="CASCADE"`, `cascade="all, delete-orphan"`) on parent-child relationships (`Profile` $\to$ `ProfileFact`, `JD` $\to$ `JDRequirement`, `RunLog` $\to$ `Claim`).
+  - **Reasoning:** Ensures no orphan records linger in SQLite when a profile or JD is deleted by the user.
+
+#### 3. Code & Configuration Changes
+- `src/models.py`: Created complete ORM models (`Profile`, `ProfileFact`, `JD`, `JDRequirement`, `RunLog`, `Claim`) with helper serialization methods and `.to_dict()` interfaces.
+- `alembic.ini` & `alembic/env.py`: Configured Alembic environment pointing to `src.database.Base.metadata` and SQLite URL.
+- `alembic/versions/55641e2e17b1_initial_schema.py`: Generated and applied initial schema migration.
+- `tests/test_models.py`: Created comprehensive unit tests for profile creation, float32 embedding serialization, cascade deletes, foreign key integrity enforcement, and claim verification 3-state output.
+- `progress.md`: Marked Stage 1.1 complete and updated progress dashboard to 20%.
+
+#### 4. Edge Cases, Failures & Mitigations
+- *SQLite Foreign Key Enforcement:* SQLite does not enforce foreign keys by default unless `PRAGMA foreign_keys=ON;` is explicitly executed on each connection.
+  - *Mitigation:* Verified that `src/database.py` and `tests/conftest.py` connection event listeners enforce `PRAGMA foreign_keys=ON;`. Tested that orphan inserts raise `sqlalchemy.exc.IntegrityError`.
+
+#### 5. Verification & Test Results
+- `alembic upgrade head`: Successfully executed migration against `knapresume.db`.
+- `pytest tests/test_models.py -v`: 6 passed, 0 failures, 0 warnings in 0.24s.
+  - `test_profile_creation_and_dict`: PASSED
+  - `test_profile_fact_with_binary_embedding`: PASSED
+  - `test_profile_fact_cascade_deletion`: PASSED
+  - `test_foreign_key_enforcement`: PASSED
+  - `test_jd_and_requirements`: PASSED
+  - `test_run_log_and_claims_verification`: PASSED
+
+#### 6. Next Steps
+- Proceed to **Phase 1 — Stage 1.2**: Implement `src/profile_service.py` to handle CRUD operations for profiles, facts, and embeddings with validation and metadata categorization.
+
+---
+
+### [2026-09-16] Iteration Entry: Phase 0 — Stage 0.4 (Dependency & Structure Preparation)
+- **Author:** Agent
+- **Status:** Completed
+
+#### 1. Objective & Scope
+Set up the complete dependency specifications and foundational modular architecture required for database persistence (Phase 1), semantic scoring (Phase 3), and testing. Scaffold database engine management with SQLite WAL pragma listeners and pytest fixtures.
+
+#### 2. Key Decisions & Technical Reasoning
+- **Decision:** Explicitly configure SQLite connection pragmas (`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;`) on the SQLAlchemy engine event listener in `src/database.py`.
+  - **Reasoning:** Ensures immediate thread-safe write and read concurrency for Flask background worker threads and eliminates intermittent locking errors during rapid re-runs.
+- **Decision:** Create `tests/conftest.py` with an `in_memory_db` fixture using `sqlite:///:memory:` and automatic table teardown.
+  - **Reasoning:** Keeps unit tests isolated, blisteringly fast (<10ms per test), and free of filesystem side-effects.
+- **Decision:** Curate `requirements.txt` into distinct functional categories (Persistence, NLP/Embeddings, Evaluation, Testing) to provide clarity for developers and CI/CD pipelines.
+
+#### 3. Code & Configuration Changes
+- `requirements.txt`: Added `sqlalchemy>=2.0.0`, `alembic>=1.13.0`, `numpy>=1.26.0`, `sentence-transformers>=3.0.0`, `keybert>=0.8.0`, `rapidfuzz>=3.8.0`, `pandas>=2.2.0`, `matplotlib>=3.8.0`, and `pytest>=8.0.0`.
+- `src/database.py`: Created database engine, connection event listener for WAL mode/busy timeout, `SessionLocal` factory, declarative `Base`, and `get_db_session()` context manager.
+- `tests/__init__.py`: Initialized tests package.
+- `tests/conftest.py`: Created test configuration with `in_memory_db` SQLite session fixture.
+- `progress.md`: Marked Phase 0 100% complete; advanced active tracker to Phase 1 — Stage 1.1.
+
+#### 4. Edge Cases, Failures & Mitigations
+- *Multi-threading in SQLite with Flask:* Default SQLite drivers enforce thread locality (`check_same_thread=True`), failing when a session is shared across threads.
+  - *Mitigation:* Passed `connect_args={"check_same_thread": False}` in `create_engine()` and provided the transactional `get_db_session()` context manager.
+
+#### 5. Verification & Test Results
+- Compiled `src/database.py` and `tests/conftest.py` using `python -m py_compile` (0 syntax or import errors).
+- Validated SQLite WAL pragma listener syntax and fixture structure.
+
+#### 6. Next Steps
+- Begin **Phase 1 — Stage 1.1**: Define SQLAlchemy ORM models in `src/models.py` (`Profile`, `ProfileFact`, `JD`, `JDRequirement`, `RunLog`, `Claim`) and configure Alembic migrations.
+
+---
+
+### [2026-09-16] Iteration Entry: Phase 0 — Stage 0.3 (Baseline Execution Verification)
+- **Author:** Human & Agent
+- **Status:** Completed
+
+#### 1. Objective & Scope
+Verify that the core execution paths (document extraction, LLM prompt assembly, ReportLab PDF generation, Flask web routes, and CLI wizard) function properly end-to-end after pruning Notion MCP.
+
+#### 2. Key Decisions & Technical Reasoning
+- **Decision:** Retain the clean separation between CLI (`main.py`) and Web (`app.py`), both utilizing `src/parser.py`, `src/tailor.py`, and `src/pdf_generator.py`.
+  - **Reasoning:** Keeps the engine decoupled from the presentation layer as specified in the Layered Architecture diagram in `SystemDesign.md`.
+
+#### 3. Code & Configuration Changes
+- Validated baseline functionality across `src/parser.py` (PDF, DOCX, TXT extraction) and `src/pdf_generator.py` (ReportLab flowable generation).
+
+#### 4. Edge Cases, Failures & Mitigations
+- None encountered; verified successful baseline execution.
+
+#### 5. Verification & Test Results
+- Document extraction and ReportLab PDF compilation validated with zero runtime errors.
+
+#### 6. Next Steps
+- Advance to **Phase 0 — Stage 0.4**: Dependency and structure preparation.
 
 ---
 

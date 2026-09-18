@@ -8,10 +8,27 @@ pdfplumber>=0.10.0
 reportlab>=4.0.0
 python-docx>=1.1.0
 
-# Utilities
+# Database & Persistence (Phase 1)
+sqlalchemy>=2.0.0
+alembic>=1.13.0
+numpy>=1.26.0
+
+# NLP, Embeddings & Scoring (Phases 2-4)
+sentence-transformers>=3.0.0
+keybert>=0.8.0
+rapidfuzz>=3.8.0
+
+# Evaluation & Metrics (Phase 6)
+pandas>=2.2.0
+matplotlib>=3.8.0
+
+# Utilities & Web Framework
 requests>=2.31.0
 python-dotenv>=1.0.0
 rich>=13.7.0
 typer>=0.12.0
 httpx>=0.27.0
 flask>=3.0.0
+
+# Testing
+pytest>=8.0.0

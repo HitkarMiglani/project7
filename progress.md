@@ -8,15 +8,15 @@
 
 ## 📊 Project Status Dashboard
 
-- **Current Phase:** Phase 0 — Fork & Orient
-- **Current Stage:** Stage 0.3 — Baseline Execution Verification
-- **Overall Completion:** 10%
+- **Current Phase:** Phase 1 — Profile Persistence Layer
+- **Current Stage:** Stage 1.2 — Profile & Fact CRUD Service Layer
+- **Overall Completion:** 20%
 - **Status:** 🟢 Ready for Execution
 
 | Phase | Description | Target Timeline | Status | Stages Total | Stages Completed |
 |---|---|---|---|---|---|
-| **Phase 0** | Fork & Orient | 1 day | 🔄 In Progress | 4 | 2 |
-| **Phase 1** | Profile Persistence Layer | 4 days | ⏳ Pending | 4 | 0 |
+| **Phase 0** | Fork & Orient | 1 day | ✅ Completed | 4 | 4 |
+| **Phase 1** | Profile Persistence Layer | 4 days | 🔄 In Progress | 4 | 1 |
 | **Phase 2** | JD Structuring Engine | 3 days | ⏳ Pending | 3 | 0 |
 | **Phase 3** | Scoring & Knapsack Allocation | 4 days | ⏳ Pending | 4 | 0 |
 | **Phase 4** | Verification Layer (3-State) | 5 days | ⏳ Pending | 5 | 0 |
@@ -28,8 +28,8 @@
 
 ## 🎯 What is Next to be Picked Up (Immediate Action Item)
 
-1. **Phase 0 — Stage 0.3**: Verify existing CLI (`main.py`) and local Flask server (`app.py`) workflow end-to-end with sample inputs.
-2. **Phase 0 — Stage 0.4**: Audit dependencies and prepare modular layout in `src/` for Phase 1.
+1. **Phase 1 — Stage 1.2**: Implement `src/profile_service.py` to handle creation, retrieval, updates, and deletion of profile facts, metadata tagging, and vector serialization.
+2. **Phase 1 — Stage 1.3**: Wire resume file parsing (DOCX/PDF) into the profile service to auto-populate facts.
 
 ---
 
@@ -45,7 +45,7 @@ Legend:
 
 ---
 
-### Phase 0: Fork & Orient (Estimated: 1 Day)
+### Phase 0: Fork & Orient (Estimated: 1 Day) — ✅ COMPLETED
 *Objective: Understand existing codebase, prune unnecessary legacy artifacts (Notion MCP server, etc.), verify baseline execution, and finalize architecture integration boundaries.*
 
 - [x] **Stage 0.1 — System Architecture & Design Review**
@@ -57,28 +57,30 @@ Legend:
   - Prune unused dependencies from `requirements.txt` (`mcp`, `notion-client`) and clean `.env.example`.
   - Refactor `app.py` and `main.py` to remove external Notion calls and update CLI/UI branding to KnapResume.
   - Clean up footer and title in `docs/index.html`.
-- [/] **Stage 0.3 — Baseline Execution Verification**
+- [x] **Stage 0.3 — Baseline Execution Verification**
   - Verify local execution paths for `main.py` (CLI) and `app.py` (Flask server).
   - Verify ReportLab PDF generation with sample inputs (`pdf_generator.py`).
   - Test parser capabilities for PDF/DOCX/TXT (`parser.py`).
-- [ ] **Stage 0.4 — Dependency & Structure Preparation**
-  - Audit `requirements.txt` and map out new packages (`sqlalchemy`, `alembic`, `sentence-transformers`, `keybert`, `rapidfuzz`).
-  - Establish `src/` modular layout for upcoming engines (`storage`, `structuring`, `scoring`, `allocator`, `verifier`, `feedback`).
+- [x] **Stage 0.4 — Dependency & Structure Preparation**
+  - Update `requirements.txt` with SQLAlchemy, Alembic, NumPy, Pytest, Sentence-Transformers, KeyBERT, RapidFuzz.
+  - Establish `src/database.py` with WAL pragma event listeners, engine factory, and session management.
+  - Initialize `tests/` directory with `tests/conftest.py` in-memory SQLite fixtures.
 
 ---
 
 ### Phase 1: Profile Persistence Layer (Estimated: 4 Days)
 *Objective: Build persistent, SQLite-backed profile store so user facts survive across sessions instead of being re-entered.*
 
-- [ ] **Stage 1.1 — Database Architecture & ORM Schema**
+- [x] **Stage 1.1 — Database Architecture & ORM Schema**
   - Configure SQLite engine with WAL mode (`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;`).
   - Implement SQLAlchemy models in `src/models.py`:
     - `Profile` (id, name, sections JSON, timestamps).
-    - `ProfileFact` (id, profile_id, section, content, embedding BLOB/bytes, created_at).
+    - `ProfileFact` (id, profile_id, section, content, is_mandatory, embedding binary float32, created_at).
     - `JD` and `JDRequirement` (id, raw_text, structured JSON, role_type, category, importance).
     - `RunLog` and `Claim` (id, run feedback, claim text, 3-state enum, similarity scores).
-  - Initialize Alembic migration scripts and create initial schema migration.
-- [ ] **Stage 1.2 — Profile & Fact CRUD Service Layer**
+  - Initialize Alembic migration scripts and create initial schema migration (`55641e2e17b1_initial_schema.py`).
+  - Write unit tests in `tests/test_models.py` verifying constraints, foreign keys, cascades, and vector serialization.
+- [/] **Stage 1.2 — Profile & Fact CRUD Service Layer**
   - Create `src/profile_service.py` to handle creation, retrieval, updates, and deletion of profile facts.
   - Implement binary vector serialization (`np.ndarray.tobytes()` and `np.frombuffer()`) for embeddings storage.
   - Implement base metadata vs optional achievement fact tagging.
@@ -92,7 +94,11 @@ Legend:
     - `POST /api/profile/<id>/facts` (Add fact)
     - `PUT /api/fact/<id>` (Update fact)
     - `DELETE /api/fact/<id>` (Delete fact)
-  - Write pytest suite in `tests/test_profile_persistence.py` verifying facts persist across server restarts.
+  - Write test suite in `tests/test_profile_persistence.py`.
+- [ ] **Phase 1 Test & Verification Gate (Required before Phase 2)**
+  - Run full test suite: `pytest -v`.
+  - Fix any regressions or test failures across models, service layer, and API endpoints (100% pass rate).
+  - Verify server restart persistence (DoD).
 
 ---
 
@@ -208,3 +214,6 @@ Legend:
 |---|---|---|
 | **2026-09-16** | Stage 0.1 | System design review completed; architecture constraints validated; `progress.md` and `Journey.md` established. |
 | **2026-09-16** | Stage 0.2 | Codebase pruned: removed Notion MCP server/client modules, setup scripts, pruned requirements.txt, and updated app/CLI branding. |
+| **2026-09-16** | Stage 0.3 | Baseline CLI (`main.py`) & Flask (`app.py`) execution, parser extraction, and ReportLab PDF generation verified. |
+| **2026-09-16** | Stage 0.4 | Dependencies added to `requirements.txt`, `src/database.py` scaffolded with SQLite WAL pragma listeners, and `tests/conftest.py` in-memory SQLite fixtures created. Phase 0 complete. |
+| **2026-09-16** | Stage 1.1 | SQLAlchemy ORM models implemented in `src/models.py`, Alembic migrations configured & executed, binary float32 vector serialization verified, pytest suite passing 100%. |
