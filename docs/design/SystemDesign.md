@@ -216,6 +216,7 @@ flowchart TB
 | `allocator` (new) | Module | 0/1 knapsack DP allocator, capacity per section | Scored facts, capacity | Selected facts per section | Falls back to full input if allocation fails |
 | `verifier` (new) | Module | Cosine pre-screen + NLI entailment on borderline claims | Generated claims, cited facts | Verified/Inferred/Unsupported tags | Defaults to "Unsupported" on model failure |
 | `feedback` (new) | Module | Weakest-section detection with keyword gap reasoning | Allocation scores | Feedback string | Returns empty feedback on failure |
+| `profile_service` (new) | Module | Profile/Fact CRUD, embedding serialization, mandatory tagging | Profile/fact input, embeddings | Dicts via `to_dict()` | Raises `ProfileNotFoundError`/`FactNotFoundError`/`ValueError` |
 
 ### 5.3 Layered Architecture
 
@@ -893,7 +894,9 @@ flowchart LR
 
 | Pillar | Tool | What to capture | Retention |
 |---|---|---|---|
-| Logs | Python `logging` / `rich` | Request flow, errors, timing | Console (no persistence) |
+| Logs | `src/logger.py` → stdlib `logging` (console + optional rotating file) | Request flow, job lifecycle, LLM provider/model/latency, extraction, PDF generation, DB sessions | Console always; `logs/knapresume.log` (2MB × 3) when `KNAP_LOG_FILE` set |
+
+> **Security:** API keys (Anthropic, Gemini, Brave) and `.env` secrets are never logged. Log lines include provider/model names, char counts, and durations only. Debug level (`KNAP_LOG_LEVEL=DEBUG`) additionally logs DB session open/commit/rollback.
 | Metrics | In-memory counters in `app.py` | Job count, success/fail rate, duration | Process lifetime |
 | Traces | Not applicable (single-process) | N/A | N/A |
 | Alerts | Not applicable (local tool) | N/A | N/A |

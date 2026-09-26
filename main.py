@@ -11,6 +11,7 @@ Usage:
 
 import os
 import sys
+import time
 import typer
 from pathlib import Path
 from typing import Optional
@@ -25,10 +26,13 @@ load_dotenv()
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+from src.logger import get_logger
 from src.parser import extract_text
 from src.web_context import fetch_company_context
 from src.tailor import tailor_resume, generate_cover_letter
 from src.pdf_generator import generate_resume_pdf, generate_cover_letter_pdf
+
+logger = get_logger("main")
 
 app = typer.Typer(help="🎯 KnapResume — ATS-optimized resume tailoring with knapsack allocation & verification")
 console = Console()
@@ -180,6 +184,9 @@ def tailor(
     company, job_title = _extract_company_job_title(job_desc)
     console.print(f"\n[bold]Detected role:[/] {job_title}")
     console.print(f"[bold]Detected company:[/] {company}\n")
+    logger.info("Run starting: company=%s role=%s provider=%s model=%s",
+                company, job_title, provider, model or "claude-opus-4-5")
+    _start = time.time()
 
     # ── Step 2: Web context ──────────────────────────────────────────────────
     web_context = ""
@@ -189,6 +196,7 @@ def tailor(
             task = progress.add_task("Fetching company context from web...", total=None)
             web_context = fetch_company_context(job_desc, detected_url or job_url or "")
             progress.update(task, description="✅ Web context fetched")
+        logger.info("Web context fetched (%d chars)", len(web_context))
 
     # ── Step 3: Tailor resume ────────────────────────────────────────────────
     console.print(f"[bold cyan]Step 1/3:[/] Tailoring resume with {provider.title()} AI...")
@@ -197,6 +205,7 @@ def tailor(
         task = progress.add_task("Analysing and tailoring...", total=None)
         tailored = tailor_resume(resume, job_desc, web_context, provider=provider, model=model or "claude-opus-4-5")
         progress.update(task, description="✅ Resume tailored")
+    logger.info("Resume tailored (%d chars)", len(tailored))
 
     # ── Step 4: Generate cover letter ────────────────────────────────────────
     console.print(f"[bold cyan]Step 2/3:[/] Generating cover letter with {provider.title()} AI...")
@@ -205,6 +214,7 @@ def tailor(
         task = progress.add_task("Writing cover letter...", total=None)
         cover = generate_cover_letter(resume, job_desc, tailored, web_context, provider=provider, model=model or "claude-opus-4-5")
         progress.update(task, description="✅ Cover letter generated")
+    logger.info("Cover letter generated (%d chars)", len(cover))
 
     # ── Step 5: Generate PDFs ────────────────────────────────────────────────
     console.print("[bold cyan]Step 3/3:[/] Generating PDFs...")
@@ -214,8 +224,10 @@ def tailor(
 
     generate_resume_pdf(tailored, resume_pdf_path)
     generate_cover_letter_pdf(cover, cover_pdf_path)
+    logger.info("PDFs written: %s, %s", resume_pdf_path, cover_pdf_path)
 
     # ── Done ─────────────────────────────────────────────────────────────────
+    logger.info("Run completed in %.1fs", time.time() - _start)
     console.print(Panel(
         f"[bold green]✅ Done![/]\n\n"
         f"📄 Tailored Resume:  [cyan]{resume_pdf_path}[/]\n"

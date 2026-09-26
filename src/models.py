@@ -60,6 +60,12 @@ class Profile(Base):
         back_populates="profile",
         cascade="all, delete-orphan",
     )
+    chats = relationship(
+        "ChatThread",
+        back_populates="profile",
+        cascade="all, delete-orphan",
+        order_by="ChatThread.updated_at.desc()",
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -143,6 +149,10 @@ class JD(Base):
         back_populates="jd",
         cascade="all, delete-orphan",
     )
+    chats = relationship(
+        "ChatThread",
+        back_populates="jd",
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -192,6 +202,41 @@ class JDRequirement(Base):
             "category": self.category,
             "importance": self.importance,
             "has_embedding": self.embedding is not None,
+        }
+
+
+class ChatThread(Base):
+    """
+    One JD application thread under a profile (1 profile : N threads).
+    The chat timeline (JD card, runs, diffs) is derived from the linked JD
+    plus the profile+JD run_logs — no message table needed.
+    """
+    __tablename__ = "chat_threads"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    profile_id = Column(Integer, ForeignKey("profiles.id", ondelete="CASCADE"),
+                        nullable=False, index=True)
+    jd_id = Column(Integer, ForeignKey("jds.id", ondelete="SET NULL"),
+                   nullable=True, index=True)
+    title = Column(String(255), nullable=False, default="New application")
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+
+    # Relationships
+    profile = relationship("Profile", back_populates="chats")
+    jd = relationship("JD", back_populates="chats")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "profile_id": self.profile_id,
+            "jd_id": self.jd_id,
+            "title": self.title,
+            "company": self.jd.company if self.jd else None,
+            "job_title": self.jd.job_title if self.jd else None,
+            "role_type": self.jd.role_type if self.jd else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 

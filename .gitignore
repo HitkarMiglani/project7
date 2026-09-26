@@ -21,6 +21,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+*.pdf
 
 # Virtual Environment
 venv/
@@ -63,9 +64,3 @@ logs/
 
 # Documentation & Development
 dev.md
-
-# Notion MCP
-# (API keys are already protected via .env above)
-# These would only be created by manual configuration
-.notion_token
-notion_config.json

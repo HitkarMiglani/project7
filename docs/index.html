@@ -3,614 +3,674 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KnapResume — ATS Resume Optimizer</title>
+<title>KnapResume — Knapsack resume tailoring, verified</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<!-- PDF extraction: PDF.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<!-- PDF generation: jsPDF -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-:root{--bg:#0a0a0f;--surface:#111118;--border:#1e1e2e;--border-bright:#2e2e4e;--accent:#c8b4ff;--accent2:#7df9c0;--text:#e8e8f0;--text-dim:#6e6e8a;--text-muted:#3e3e5a;--error:#ff6b6b;--radius:12px}
+:root{--bg:#0a0a0f;--surface:#111118;--surface2:#16161f;--border:#1e1e2e;--border-bright:#2e2e4e;--accent:#c8b4ff;--accent2:#7df9c0;--warn:#ffb86b;--text:#e8e8f0;--text-dim:#6e6e8a;--text-muted:#3e3e5a;--error:#ff6b6b;--radius:12px;--bubble-in:#16161f;--bubble-out:#1c2430}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;min-height:100vh;overflow-x:hidden}
 body::before{content:'';position:fixed;top:-30vh;left:-20vw;width:80vw;height:80vh;background:radial-gradient(ellipse,rgba(200,180,255,.06) 0%,transparent 70%);pointer-events:none;z-index:0}
-body::after{content:'';position:fixed;bottom:-20vh;right:-10vw;width:60vw;height:60vh;background:radial-gradient(ellipse,rgba(125,249,192,.04) 0%,transparent 70%);pointer-events:none;z-index:0}
-.wrap{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:0 24px 80px}
-header{padding:56px 0 48px;border-bottom:1px solid var(--border);margin-bottom:52px}
+.wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:0 24px 80px}
+header{padding:48px 0 32px;border-bottom:1px solid var(--border);margin-bottom:28px}
 .logo-tag{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:10px}
 .logo-tag::before{content:'';display:inline-block;width:24px;height:1px;background:var(--accent)}
-h1{font-family:'Playfair Display',serif;font-size:clamp(36px,5vw,58px);font-weight:700;line-height:1.1;letter-spacing:-.02em}
+h1{font-family:'Playfair Display',serif;font-size:clamp(32px,4.5vw,50px);font-weight:700;line-height:1.1;letter-spacing:-.02em}
 h1 em{font-style:italic;color:var(--accent)}
-.subtitle{margin-top:14px;font-size:15px;color:var(--text-dim);max-width:520px;line-height:1.6}
-.badge{display:inline-flex;align-items:center;gap:8px;margin-top:20px;padding:6px 14px 6px 10px;background:rgba(200,180,255,.07);border:1px solid rgba(200,180,255,.2);border-radius:100px;font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:.05em}
-.section-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;margin-bottom:20px;transition:border-color .2s}
-.card:focus-within{border-color:var(--border-bright)}
+.subtitle{margin-top:12px;font-size:14px;color:var(--text-dim);max-width:560px;line-height:1.6}
+.badge{display:inline-flex;align-items:center;gap:8px;margin-top:18px;padding:6px 14px 6px 10px;background:rgba(125,249,192,.06);border:1px solid rgba(125,249,192,.2);border-radius:100px;font-family:'DM Mono',monospace;font-size:11px;color:var(--accent2);letter-spacing:.05em}
+.badge.off{background:rgba(255,107,107,.06);border-color:rgba(255,107,107,.25);color:var(--error)}
+/* stepper */
+.stepper{display:flex;gap:0;margin-bottom:28px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.step-tab{flex:1;padding:14px 10px;background:var(--surface);border:none;color:var(--text-dim);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;border-right:1px solid var(--border);transition:all .15s}
+.step-tab:last-child{border-right:none}
+.step-tab .n{width:22px;height:22px;border-radius:50%;background:var(--border);color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.step-tab.active{background:var(--surface2);color:var(--text)}
+.step-tab.active .n{background:var(--accent);color:#0a0a0f}
+.step-tab.done .n{background:var(--accent2);color:#0a0a0f}
+/* cards & forms */
+.view{display:none}.view.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;margin-bottom:20px}
 .card-title{font-size:13px;font-weight:500;color:var(--text-dim);margin-bottom:18px;display:flex;align-items:center;gap:8px}
-.num{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);background:var(--border);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.section-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px}
 .row-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
 @media(max-width:560px){.row-2{grid-template-columns:1fr}}
 .field-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
-.tabs{display:flex;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:4px;margin-bottom:18px;width:fit-content}
-.tab{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;padding:7px 16px;border-radius:6px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;transition:all .15s}
-.tab.active{background:var(--border-bright);color:var(--text)}
-.tab-panel{display:none}.tab-panel.active{display:block}
 input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:300;outline:none;transition:border-color .2s;resize:vertical}
 input:focus,select:focus,textarea:focus{border-color:var(--border-bright)}
-input[type=password]{letter-spacing:.1em}
 select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236e6e8a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;cursor:pointer}
 select option{background:var(--surface)}
-textarea{min-height:160px;line-height:1.6}
+textarea{min-height:140px;line-height:1.6}
 ::placeholder{color:var(--text-muted)}
-.key-wrap{position:relative}
-.key-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:4px;z-index:1}
-.provider-note{margin-top:9px;font-size:11px;color:var(--text-muted);font-family:'DM Mono',monospace;line-height:1.7}
-.provider-note a{color:var(--accent);text-decoration:none}
-.dropzone{border:1px dashed var(--border-bright);border-radius:8px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.btn-go{width:100%;padding:16px;background:var(--accent);color:#0a0a0f;border:none;border-radius:var(--radius);font-family:'Playfair Display',serif;font-size:17px;font-style:italic;cursor:pointer;transition:all .2s;margin-top:8px}
+.btn-go:hover{background:#d8c8ff;transform:translateY(-1px)}
+.btn-go:disabled{background:var(--border-bright);color:var(--text-muted);cursor:not-allowed;transform:none}
+.btn-line{width:100%;padding:12px;background:transparent;border:1px solid var(--border-bright);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;cursor:pointer;transition:all .2s;margin-top:12px}
+.btn-line:hover{border-color:var(--accent);color:var(--accent)}
+.btn-line:disabled{opacity:.4;cursor:not-allowed}
+.btn-sm{width:auto;margin-top:0;padding:12px 18px;white-space:nowrap}
+.tabs{display:flex;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:4px;margin-bottom:18px;width:fit-content}
+.tab{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;padding:7px 16px;border-radius:6px;border:none;background:transparent;color:var(--text-dim);cursor:pointer}
+.tab.active{background:var(--border-bright);color:var(--text)}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.dropzone{border:1px dashed var(--border-bright);border-radius:8px;padding:32px;text-align:center;cursor:pointer;position:relative}
 .dropzone:hover,.dropzone.over{border-color:var(--accent);background:rgba(200,180,255,.03)}
 .dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;padding:0}
 .dz-icon{font-size:28px;margin-bottom:10px}
 .dz-label{font-size:13px;color:var(--text-dim)}.dz-label strong{color:var(--accent);font-weight:500}
 .dz-hint{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);margin-top:6px}
 .file-ok{margin-top:10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--accent2);display:none}
-.btn-go{width:100%;padding:18px;background:var(--accent);color:#0a0a0f;border:none;border-radius:var(--radius);font-family:'Playfair Display',serif;font-size:18px;font-style:italic;cursor:pointer;transition:all .2s;margin-top:8px}
-.btn-go:hover{background:#d8c8ff;transform:translateY(-1px)}
-.btn-go:disabled{background:var(--border-bright);color:var(--text-muted);cursor:not-allowed;transform:none}
-#prog{display:none;margin-top:28px}
-.prog-card{background:var(--surface);border:1px solid var(--border-bright);border-radius:var(--radius);padding:28px}
-.prog-title{font-family:'Playfair Display',serif;font-size:20px;margin-bottom:24px}
+/* profiles grid */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.pcard{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:18px;cursor:pointer;transition:all .2s}
+.pcard:hover{border-color:var(--accent);transform:translateY(-2px)}
+.pcard.sel{border-color:var(--accent);background:rgba(200,180,255,.04)}
+.pcard h3{font-size:15px;font-weight:500;margin-bottom:6px}
+.pcard .meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);line-height:1.8}
+.pcard .go{margin-top:10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--accent2);letter-spacing:.08em}
+/* facts */
+.facts{list-style:none;margin-top:14px;max-height:340px;overflow-y:auto}
+.facts li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:13px;line-height:1.5}
+.facts .sec{font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;padding-top:2px}
+.facts .star{color:var(--warn);font-size:11px;padding-top:2px}
+.facts .del{margin-left:auto;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0 2px}
+.facts .del:hover{color:var(--error)}
+.facts li.dropped{opacity:.55;border-style:dashed}
+/* chips / bars / callouts */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{font-family:'DM Mono',monospace;font-size:11px;padding:5px 12px;border-radius:100px;border:1px solid var(--border-bright);color:var(--text-dim)}
+.chip.req{border-color:rgba(200,180,255,.4);color:var(--accent)}
+.chip.nice{border-color:rgba(125,249,192,.3);color:var(--accent2)}
+.chip.miss{border-color:rgba(255,184,107,.45);color:var(--warn)}
+.chip.role{background:rgba(200,180,255,.08)}
+.bar-row{margin-top:12px}
+.bar-head{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);margin-bottom:6px}
+.bar{height:8px;background:var(--bg);border:1px solid var(--border);border-radius:100px;overflow:hidden}
+.bar>div{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s}
+.bar.low>div{background:linear-gradient(90deg,var(--warn),var(--error))}
+.callout{margin-top:14px;padding:14px 16px;border:1px solid rgba(255,184,107,.35);background:rgba(255,184,107,.05);border-radius:8px;font-size:13px;line-height:1.6}
+.callout.ok{border-color:rgba(125,249,192,.3);background:rgba(125,249,192,.04)}
+.callout strong{font-weight:500}
+.muted{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.7}
+/* chat layout */
+.chat-shell{display:flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;height:640px;background:var(--surface)}
+.side{width:300px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface)}
+.side-head{padding:14px;border-bottom:1px solid var(--border)}
+.side-head input{margin-top:10px}
+.thread-list{flex:1;overflow-y:auto}
+.thread{padding:14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;gap:12px;transition:background .15s}
+.thread:hover{background:var(--surface2)}
+.thread.active{background:var(--surface2);border-left:3px solid var(--accent)}
+.avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0a0a0f;font-weight:500;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.thread .tt{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thread .ts{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+.thread .tm{margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);flex-shrink:0}
+.thread .unread{background:var(--accent2);color:#0a0a0f;font-size:9px;font-family:'DM Mono',monospace;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-top:4px}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.chat-head{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--surface2)}
+.chat-head .tt{font-size:14px;font-weight:500}
+.chat-head .ts{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted)}
+.chat-head .acts{margin-left:auto;display:flex;gap:8px}
+.icon-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-dim);cursor:pointer;font-size:12px;padding:6px 10px;font-family:'DM Mono',monospace}
+.icon-btn:hover{border-color:var(--error);color:var(--error)}
+.timeline{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;background-image:radial-gradient(rgba(200,180,255,.04) 1px,transparent 1px);background-size:22px 22px}
+.bubble{max-width:82%;padding:12px 16px;border-radius:14px;font-size:13px;line-height:1.6}
+.bubble.in{align-self:flex-start;background:var(--bubble-in);border:1px solid var(--border);border-bottom-left-radius:4px}
+.bubble.out{align-self:flex-end;background:var(--bubble-out);border:1px solid var(--border-bright);border-bottom-right-radius:4px}
+.bubble .who{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.bubble.out .who{color:var(--accent2)}
+.bubble .time{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);margin-top:8px;text-align:right}
+.bubble .chips{margin-top:8px}
+.composer{border-top:1px solid var(--border);padding:12px 16px;background:var(--surface2)}
+.composer .row{display:flex;gap:8px;flex-wrap:wrap}
+.composer .btn-line{width:auto;margin-top:0;flex:1;min-width:140px}
+.empty-chat{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);gap:12px;text-align:center;padding:40px}
+.empty-chat .big{font-size:44px}
+.modal-veil{position:fixed;inset:0;background:rgba(5,5,10,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.modal-veil.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border-bright);border-radius:var(--radius);padding:28px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto}
+/* tailor progress + downloads */
+#prog{display:none;margin-top:20px}
+.prog-card{background:var(--surface);border:1px solid var(--border-bright);border-radius:var(--radius);padding:24px}
+.prog-title{font-family:'Playfair Display',serif;font-size:18px;margin-bottom:18px}
 .steps{list-style:none}
-.step{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-muted);transition:color .3s}
+.step{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-muted)}
 .step:last-child{border-bottom:none}
 .step.done{color:var(--text)}.step.active{color:var(--accent)}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--text-muted);flex-shrink:0;transition:background .3s}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--text-muted);flex-shrink:0}
 .step.done .dot{background:var(--accent2)}
 .step.active .dot{background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-#out{display:none;margin-top:28px}
-.out-card{background:var(--surface);border:1px solid var(--border-bright);border-radius:var(--radius);padding:28px}
-.out-head{display:flex;align-items:center;gap:12px;margin-bottom:28px}
-.out-check{width:36px;height:36px;background:rgba(125,249,192,.1);border:1px solid var(--accent2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.out-title{font-family:'Playfair Display',serif;font-size:20px}
-.out-sub{font-size:12px;color:var(--text-dim);margin-top:2px}
-.dl-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.dl-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
 @media(max-width:520px){.dl-grid{grid-template-columns:1fr}}
-.dl-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:20px;text-decoration:none;display:block;transition:all .2s;cursor:pointer}
-.dl-card:hover{border-color:var(--accent2);background:rgba(125,249,192,.03);transform:translateY(-2px)}
-.dl-icon{font-size:24px;margin-bottom:10px}
-.dl-label{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px}
-.dl-hint{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);letter-spacing:.05em}
-.dl-cta{margin-top:12px;font-size:11px;color:var(--accent2);font-family:'DM Mono',monospace;letter-spacing:.08em}
-.btn-reset{margin-top:16px;width:100%;padding:12px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text-dim);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s}
-.btn-reset:hover{border-color:var(--border-bright);color:var(--text)}
-.err{background:rgba(255,107,107,.06);border:1px solid rgba(255,107,107,.25);border-radius:var(--radius);padding:20px;color:var(--error);font-size:13px;line-height:1.6;display:none;margin-top:20px}
-.privacy-note{margin-top:12px;padding:12px 16px;background:rgba(255,159,125,.05);border:1px solid rgba(255,159,125,.15);border-radius:8px;font-size:11px;color:var(--text-muted);font-family:'DM Mono',monospace;line-height:1.7}
-footer{margin-top:80px;padding-top:24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
-.fl,.fr{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);letter-spacing:.05em}
+.dl-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;text-decoration:none;display:block;color:var(--text)}
+.dl-card:hover{border-color:var(--accent2)}
+.dl-label{font-size:13px;font-weight:500;margin-bottom:4px}
+.dl-cta{margin-top:8px;font-size:11px;color:var(--accent2);font-family:'DM Mono',monospace}
+.err{background:rgba(255,107,107,.06);border:1px solid rgba(255,107,107,.25);border-radius:var(--radius);padding:16px 20px;color:var(--error);font-size:13px;display:none;margin-bottom:20px}
+.key-wrap{position:relative}
+.key-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:4px}
+.provider-note{margin-top:9px;font-size:11px;color:var(--text-muted);font-family:'DM Mono',monospace}
+.provider-note a{color:var(--accent);text-decoration:none}
+.privacy-note{margin-top:12px;font-size:11px;color:var(--text-muted);font-family:'DM Mono',monospace;line-height:1.7}
+footer{margin-top:60px;padding-top:24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.fl,.fr{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted)}
 .fr a{color:var(--accent);text-decoration:none}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--border-bright);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:8px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media(max-width:720px){.chat-shell{flex-direction:column;height:auto}.side{width:100%;border-right:none;border-bottom:1px solid var(--border)}.thread-list{max-height:260px}.timeline{min-height:320px}}
 </style>
 </head>
 <body>
 <div class="wrap">
 
 <header>
-  <div class="logo-tag">Local Resume Workflow</div>
-  <h1>Resume<br><em>Tailor</em></h1>
-  <p class="subtitle">Choose your AI provider, paste a job link, upload your resume — get a tailored resume and cover letter as downloadable PDFs.</p>
-  <div class="badge">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933z"/></svg>
-    Logged to Notion via MCP
-  </div>
+  <div class="logo-tag">KnapResume · Local-first pipeline</div>
+  <h1>Knapsack resume<br><em>tailoring</em>, verified</h1>
+  <p class="subtitle">One profile, many applications — each job description gets its own chat: structured JD, allocation, gap feedback and tailored PDFs, 1 : N from profile to JD.</p>
+  <div class="badge" id="backend-badge"><span class="spin"></span>Connecting to local backend…</div>
 </header>
-
-<form id="form">
-
-<!-- 00 Provider -->
-<div class="section-label">00 — AI Provider</div>
-<div class="card">
-  <div class="card-title"><span class="num">0</span> Choose your AI provider &amp; enter your API key</div>
-  <div class="row-2">
-    <div>
-      <div class="field-label">Provider</div>
-      <select id="provider" onchange="onProvider()">
-        <option value="claude">Claude (Anthropic)</option>
-        <option value="gemini">Gemini (Google — free tier)</option>
-      </select>
-    </div>
-    <div>
-      <div class="field-label">Model</div>
-      <select id="model"></select>
-    </div>
-  </div>
-  <div class="field-label">API Key</div>
-  <div class="key-wrap">
-    <input type="password" id="apikey" placeholder="Paste your API key" autocomplete="off">
-    <button type="button" class="key-toggle" onclick="toggleKey()">👁</button>
-  </div>
-  <div class="provider-note" id="pnote"></div>
-  <div class="privacy-note" id="privacy-note"></div>
-</div>
-
-<!-- 01 Job -->
-<div class="section-label" style="margin-top:32px">01 — Job</div>
-<div class="card">
-  <div class="card-title"><span class="num">1</span> Where is the job?</div>
-  <div class="tabs" id="jtabs">
-    <button type="button" class="tab active" data-p="jp-text">Paste text</button>
-    <button type="button" class="tab" data-p="jp-file">Upload file</button>
-  </div>
-  <div class="tab-panel active" id="jp-text">
-    <textarea id="job-text" placeholder="Paste the full job description here..."></textarea>
-  </div>
-  <div class="tab-panel" id="jp-file">
-    <div class="dropzone" id="jdrop">
-      <input type="file" id="job-file" accept=".pdf,.txt">
-      <div class="dz-icon">📋</div>
-      <div class="dz-label"><strong>Click to upload</strong> or drag &amp; drop</div>
-      <div class="dz-hint">PDF · TXT</div>
-      <div class="file-ok" id="jfn"></div>
-    </div>
-  </div>
-</div>
-
-<!-- 02 Resume -->
-<div class="section-label" style="margin-top:32px">02 — Resume</div>
-<div class="card">
-  <div class="card-title"><span class="num">2</span> Your resume</div>
-  <div class="tabs" id="rtabs">
-    <button type="button" class="tab active" data-p="rp-file">Upload file</button>
-    <button type="button" class="tab" data-p="rp-text">Paste text</button>
-  </div>
-  <div class="tab-panel active" id="rp-file">
-    <div class="dropzone" id="rdrop">
-      <input type="file" id="res-file" accept=".pdf,.txt">
-      <div class="dz-icon">📄</div>
-      <div class="dz-label"><strong>Click to upload</strong> or drag &amp; drop</div>
-      <div class="dz-hint">PDF · TXT</div>
-      <div class="file-ok" id="rfn"></div>
-    </div>
-  </div>
-  <div class="tab-panel" id="rp-text">
-    <textarea id="res-text" placeholder="Paste your full resume text here..."></textarea>
-  </div>
-</div>
-
-<button type="submit" class="btn-go" id="gobtn">Tailor my resume →</button>
-</form>
 
 <div class="err" id="err"></div>
 
-<!-- Progress -->
-<div id="prog">
-  <div class="prog-card">
-    <div class="prog-title">Working on it<span id="dots">...</span></div>
-    <ul class="steps">
-      <li class="step" id="s0"><span class="dot"></span>Reading documents</li>
-      <li class="step" id="s1"><span class="dot"></span>Tailoring resume with AI</li>
-      <li class="step" id="s2"><span class="dot"></span>Generating cover letter</li>
-      <li class="step" id="s3"><span class="dot"></span>Building PDF — Resume</li>
-      <li class="step" id="s4"><span class="dot"></span>Building PDF — Cover Letter</li>
-    </ul>
-  </div>
-</div>
+<nav class="stepper">
+  <button class="step-tab active" id="tab-profiles" onclick="go('profiles')"><span class="n">1</span>Profile</button>
+  <button class="step-tab" id="tab-facts" onclick="go('facts')"><span class="n">2</span>Facts</button>
+  <button class="step-tab" id="tab-chats" onclick="go('chats')"><span class="n">3</span>Chats · JD applications</button>
+</nav>
 
-<!-- Output -->
-<div id="out">
-  <div class="out-card">
-    <div class="out-head">
-      <div class="out-check">✓</div>
-      <div>
-        <div class="out-title">Ready to download</div>
-        <div class="out-sub" id="outsub"></div>
-      </div>
+<!-- ══ VIEW 1 · PROFILES ═══════════════════════════════════════════════════ -->
+<section class="view active" id="view-profiles">
+  <div class="section-label">Step 1 — Build a profile, or pick up where you left off</div>
+  <div class="card">
+    <div class="card-title">New profile</div>
+    <div style="display:flex;gap:8px">
+      <input id="profile-name" placeholder="e.g. Alice — Backend">
+      <button class="btn-line btn-sm" style="margin-top:0" onclick="createProfile()">Create →</button>
     </div>
-    <div class="dl-grid">
-      <div class="dl-card" id="dl-resume" onclick="downloadPDF('resume')">
-        <div class="dl-icon">📄</div>
-        <div class="dl-label">Tailored Resume</div>
-        <div class="dl-hint">ATS-OPTIMISED · PDF</div>
-        <div class="dl-cta">↓ Download</div>
-      </div>
-      <div class="dl-card" id="dl-cover" onclick="downloadPDF('cover')">
-        <div class="dl-icon">✉️</div>
-        <div class="dl-label">Cover Letter</div>
-        <div class="dl-hint">PERSONALISED · PDF</div>
-        <div class="dl-cta">↓ Download</div>
-      </div>
-    </div>
-    <button class="btn-reset" onclick="reset()">← Start over</button>
   </div>
-</div>
+  <div class="section-label">Existing profiles</div>
+  <div class="pgrid" id="profile-grid"></div>
+</section>
+
+<!-- ══ VIEW 2 · FACTS ══════════════════════════════════════════════════════ -->
+<section class="view" id="view-facts">
+  <div class="section-label">Step 2 — Facts for <span id="facts-pname">…</span></div>
+  <div class="card">
+    <div class="card-title">Ingest a resume, then curate the facts</div>
+    <div class="tabs" id="rtabs">
+      <button type="button" class="tab active" data-p="rp-file">Upload file</button>
+      <button type="button" class="tab" data-p="rp-text">Paste text</button>
+      <button type="button" class="tab" data-p="rp-add">Add fact</button>
+    </div>
+    <div class="tab-panel active" id="rp-file">
+      <div class="dropzone"><input type="file" id="res-file" accept=".pdf,.docx,.txt,.md">
+        <div class="dz-icon">📄</div><div class="dz-label"><strong>Click to upload</strong> or drag &amp; drop</div>
+        <div class="dz-hint">PDF · DOCX · TXT · MD — parsed server-side</div>
+        <div class="file-ok" id="rfn"></div></div>
+      <button class="btn-line" onclick="ingestFile()">Ingest into this profile</button>
+    </div>
+    <div class="tab-panel" id="rp-text">
+      <textarea id="res-text" placeholder="Paste your full resume text here..."></textarea>
+      <button class="btn-line" onclick="ingestText()">Ingest into this profile</button>
+    </div>
+    <div class="tab-panel" id="rp-add">
+      <div class="row-2">
+        <div><div class="field-label">Section</div><input id="fact-section" placeholder="experience"></div>
+        <div><div class="field-label">Mandatory (never dropped)</div>
+          <select id="fact-mandatory"><option value="">auto</option><option value="true">true</option><option value="false">false</option></select></div>
+      </div>
+      <textarea id="fact-content" style="min-height:80px" placeholder="One verifiable statement..."></textarea>
+      <button class="btn-line" onclick="addFact()">Add fact</button>
+    </div>
+    <ul class="facts" id="facts"></ul>
+    <div class="muted" id="facts-meta"></div>
+    <button class="btn-go" onclick="go('chats')">Open chats for this profile →</button>
+  </div>
+</section>
+
+<!-- ══ VIEW 3 · CHATS ══════════════════════════════════════════════════════ -->
+<section class="view" id="view-chats">
+  <div class="section-label">Step 3 — One chat per job · <span id="chats-pname">…</span></div>
+  <div class="chat-shell">
+    <aside class="side">
+      <div class="side-head">
+        <button class="btn-line" style="margin-top:0" onclick="openNewChat()">＋ New application chat</button>
+        <input id="chat-search" placeholder="Search chats…" oninput="renderThreads()">
+      </div>
+      <div class="thread-list" id="thread-list"></div>
+    </aside>
+    <div class="main" id="chat-main">
+      <div class="empty-chat"><div class="big">💬</div><div>Pick a chat, or start a new application.<br>Each chat is one JD threaded under this profile.</div></div>
+    </div>
+  </div>
+</section>
 
 <footer>
-  <div class="fl">KNAPRESUME</div>
-  <div class="fr">Powered by <a href="https://anthropic.com">Claude</a> / <a href="https://ai.google.dev">Gemini</a> · <a href="./privacy.html">Privacy Policy</a></div>
+  <div class="fl">KNAPRESUME · 1 PROFILE : N JD CHATS</div>
+  <div class="fr">Local backend <span id="foot-status">…</span> · <a href="./privacy.html">Privacy Policy</a></div>
 </footer>
 </div>
 
+<!-- New-chat modal -->
+<div class="modal-veil" id="newchat-veil">
+  <div class="modal">
+    <div class="card-title">New application chat</div>
+    <div class="field-label">Paste a job description — it will be structured &amp; attached</div>
+    <textarea id="newchat-jd" placeholder="Paste the full job description..."></textarea>
+    <div class="field-label" style="margin-top:12px">…or attach an already-structured job</div>
+    <select id="newchat-existing"><option value="">— none —</option></select>
+    <button class="btn-go" onclick="createChat()">Create chat →</button>
+    <button class="btn-line" onclick="closeNewChat()">Cancel</button>
+  </div>
+</div>
+
+<!-- Attach-JD modal -->
+<div class="modal-veil" id="attach-veil">
+  <div class="modal">
+    <div class="card-title">Attach a job description</div>
+    <div class="tabs">
+      <button type="button" class="tab active" data-p="ap-text">Paste text</button>
+      <button type="button" class="tab" data-p="ap-file">Drop a file</button>
+      <button type="button" class="tab" data-p="ap-existing">Existing job</button>
+    </div>
+    <div class="tab-panel active" id="ap-text">
+      <textarea id="attach-jd-text" placeholder="Paste the full job description..."></textarea>
+      <button class="btn-go" onclick="attachJDText()">Structure &amp; attach →</button>
+    </div>
+    <div class="tab-panel" id="ap-file">
+      <div class="dropzone"><input type="file" id="attach-jd-file" accept=".pdf,.docx,.txt,.md">
+        <div class="dz-icon">📋</div><div class="dz-label"><strong>Click to upload</strong> or drag &amp; drop</div>
+        <div class="dz-hint">PDF · DOCX · TXT · MD — parsed server-side</div>
+        <div class="file-ok" id="attach-jd-fn"></div></div>
+      <button class="btn-go" onclick="attachJDFile()">Upload &amp; attach →</button>
+    </div>
+    <div class="tab-panel" id="ap-existing">
+      <div class="field-label">Already-structured jobs</div>
+      <select id="attach-jd-existing"><option value="">— none —</option></select>
+      <button class="btn-go" onclick="attachJDExisting()">Attach selected →</button>
+    </div>
+    <button class="btn-line" onclick="closeAttach()">Cancel</button>
+  </div>
+</div>
+
 <script>
-// ── Config ────────────────────────────────────────────────────────────────────
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// ── State + client ──────────────────────────────────────────────────────────
+let backendMode=false, profileId=Number(localStorage.getItem('knap.profileId'))||null;
+let profileName='', chatId=Number(localStorage.getItem('knap.chatId'))||null;
+let threads=[], currentChat=null, currentView='profiles';
 
-const MODELS = {
-  claude: [
-    {v:"claude-opus-4-5",           l:"Claude Opus 4.5   (most capable)"},
-    {v:"claude-sonnet-4-6",         l:"Claude Sonnet 4.6 (fast + smart)"},
-    {v:"claude-haiku-4-5-20251001", l:"Claude Haiku 4.5  (fastest / cheapest)"},
-  ],
-  gemini: [
-    {v:"gemini-2.5-flash",      l:"Gemini 2.5 Flash      (free · 250/day)"},
-    {v:"gemini-2.5-flash-lite", l:"Gemini 2.5 Flash-Lite (free · 1000/day)"},
-    {v:"gemini-2.5-pro",        l:"Gemini 2.5 Pro         (free · 100/day)"},
-  ],
-};
-
-const NOTES = {
-  claude: {
-    pnote: `Pay-as-you-go. Get your key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>`,
-    privacy: `⚠ Anthropic may use free-tier API data for model improvement. Use a paid account to opt out.`,
-  },
-  gemini: {
-    pnote: `Free tier — no credit card needed. Get your key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>`,
-    privacy: `⚠ On the Gemini free tier, your prompts may be used to improve Google's products. Upgrade to a paid tier to opt out.`,
-  },
-};
-
-// State
-let resumePdfBytes = null, coverPdfBytes = null;
-
-// ── Provider selector ─────────────────────────────────────────────────────────
-function onProvider() {
-  const p = document.getElementById('provider').value;
-  const ms = document.getElementById('model');
-  ms.innerHTML = MODELS[p].map(m=>`<option value="${m.v}">${m.l}</option>`).join('');
-  document.getElementById('pnote').innerHTML = NOTES[p].pnote;
-  document.getElementById('privacy-note').textContent = NOTES[p].privacy;
-  document.getElementById('apikey').placeholder = p==='claude' ? 'sk-ant-api03-...' : 'AIza...';
-  // Auto-fill from server env (local only — empty on GH Pages)
-  const envKey = p==='claude' ? '__ANTHROPIC_KEY__' : '__GEMINI_KEY__';
-  document.getElementById('apikey').value = envKey.startsWith('__') ? '' : envKey;
-}
-onProvider();
-
-function toggleKey(){const i=document.getElementById('apikey');i.type=i.type==='password'?'text':'password';}
-
-// ── Tab switching ─────────────────────────────────────────────────────────────
-document.querySelectorAll('.tabs').forEach(tabs=>{
-  tabs.querySelectorAll('.tab').forEach(tab=>{
-    tab.addEventListener('click',()=>{
-      tabs.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-      tab.classList.add('active');
-      let el=tabs.nextElementSibling;
-      while(el&&el.classList.contains('tab-panel')){el.classList.remove('active');el=el.nextElementSibling;}
-      document.getElementById(tab.dataset.p).classList.add('active');
-    });
-  });
-});
-
-// ── File inputs ───────────────────────────────────────────────────────────────
-function setupFile(inputId, labelId){
-  document.getElementById(inputId).addEventListener('change',function(){
-    const el=document.getElementById(labelId);
-    el.textContent=this.files[0]?'✓ '+this.files[0].name:'';
-    el.style.display=this.files[0]?'block':'none';
-  });
-}
-setupFile('job-file','jfn'); setupFile('res-file','rfn');
-document.querySelectorAll('.dropzone').forEach(z=>{
-  z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('over');});
-  z.addEventListener('dragleave',()=>z.classList.remove('over'));
-  z.addEventListener('drop',()=>z.classList.remove('over'));
-});
-
-// ── Progress ──────────────────────────────────────────────────────────────────
-let dotsIv;
-function startDots(){let n=0;dotsIv=setInterval(()=>{document.getElementById('dots').textContent=['...','.. ','.  '][n++%3];},400);}
-function setStep(n){for(let i=0;i<5;i++){const el=document.getElementById('s'+i);el.classList.remove('active','done');if(i<n)el.classList.add('done');else if(i===n)el.classList.add('active');}}
-
-// ── PDF extraction from uploaded file ────────────────────────────────────────
-async function readFileText(file) {
-  if (!file) return '';
-  if (file.name.endsWith('.txt')) return new Promise(r=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.readAsText(file);});
-  // PDF
-  const buf = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({data: buf}).promise;
-  let text = '';
-  for (let i=1;i<=pdf.numPages;i++){
-    const pg = await pdf.getPage(i);
-    const tc = await pg.getTextContent();
-    text += tc.items.map(s=>s.str).join(' ') + '\n';
-  }
-  return text.trim();
-}
-
-// ── AI API calls ──────────────────────────────────────────────────────────────
-async function callClaude(systemPrompt, userPrompt, model, apiKey) {
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 4096,
-      system: systemPrompt,
-      messages: [{role:'user', content: userPrompt}],
-    }),
-  });
-  if (!resp.ok) {
-    const e = await resp.json();
-    throw new Error('Claude API error: ' + (e.error?.message || resp.status));
-  }
-  const data = await resp.json();
-  return data.content[0].text.trim();
-}
-
-async function callGemini(systemPrompt, userPrompt, model, apiKey) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
-      system_instruction: {parts:[{text: systemPrompt}]},
-      contents: [{parts:[{text: userPrompt}]}],
-      generationConfig: {maxOutputTokens: 4096},
-    }),
-  });
-  if (!resp.ok) {
-    const e = await resp.json();
-    throw new Error('Gemini API error: ' + (e.error?.message || resp.status));
-  }
-  const data = await resp.json();
-  return data.candidates[0].content.parts[0].text.trim();
-}
-
-async function callAI(system, user, provider, model, apiKey) {
-  return provider === 'claude'
-    ? callClaude(system, user, model, apiKey)
-    : callGemini(system, user, model, apiKey);
-}
-
-// ── Prompts ───────────────────────────────────────────────────────────────────
-const INSTRUCTIONS = `Follow standard ATS-friendly resume and cover letter formatting:
-- Resume: reverse-chronological, no tables/columns/graphics, strong action verbs, quantify achievements
-- Cover letter: max 1 page, 4 paragraphs: hook, matching experience, cultural fit, call to action
-- ATS: use keywords verbatim, no text boxes, standard bullet chars`;
-
-function resumeSystem(){return `You are an expert resume writer and ATS optimization specialist.\n\nFORMATTING INSTRUCTIONS:\n${INSTRUCTIONS}\n\nABSOLUTE RULES:\n1. ONLY use information present in the candidate's original resume.\n2. Do NOT invent, embellish or assume any experience, skills, metrics or facts.\n3. You MAY reorder, reword and emphasize existing content.\n4. Mirror job description keywords only where they truthfully apply.\n5. Output ONLY the resume text — no commentary, no markdown fences.`;}
-
-function coverSystem(){return `You are an expert cover letter writer.\n\nFORMATTING INSTRUCTIONS:\n${INSTRUCTIONS}\n\nABSOLUTE RULES:\n1. Only reference experience present in the resume.\n2. Do NOT invent stories, metrics or experiences.\n3. Output ONLY the cover letter text — no commentary, no markdown fences.`;}
-
-function resumeUser(resume, jd){return `Tailor this resume for the job below.\n\n=== ORIGINAL RESUME ===\n${resume}\n\n=== JOB DESCRIPTION ===\n${jd}\n\nOutput the full tailored resume text only.`;}
-
-function coverUser(resume, jd, tailored){return `Write a tailored cover letter.\n\n=== ORIGINAL RESUME ===\n${resume}\n\n=== TAILORED RESUME ===\n${tailored}\n\n=== JOB DESCRIPTION ===\n${jd}\n\nOutput the cover letter text only.`;}
-
-// ── PDF generation (client-side via jsPDF) ────────────────────────────────────
-function buildResumePDF(text) {
-  const {jsPDF} = window.jspdf;
-  const doc = new jsPDF({unit:'pt', format:'letter'});
-  const W = doc.internal.pageSize.getWidth();
-  const H = doc.internal.pageSize.getHeight();
-  const ml=54, mr=54, mt=54, mb=54;
-  const cw = W - ml - mr;
-  let y = mt;
-
-  const SECTION_KW = new Set(['summary','profile','objective','experience','work experience',
-    'employment','education','skills','technical skills','certifications','projects',
-    'languages','interests','awards','publications','references','volunteering']);
-
-  function stripMd(s){return s.replace(/^#{1,3}\s*/,'').replace(/\*\*(.*?)\*\*/g,'$1').replace(/__(.*?)__/g,'$1').replace(/\*(.*?)\*/g,'$1').replace(/_(.*?)_/g,'$1').trim();}
-  function isSectionHeader(l){const c=stripMd(l.trim());if(!c||c.length>60)return false;if(c===c.toUpperCase()&&c.length>2&&!c.startsWith('•'))return true;if(SECTION_KW.has(c.toLowerCase().replace(':','')))return true;if(l.trim().startsWith('#'))return true;return false;}
-  function isBullet(l){return /^\s*[•\-\*–·]\s+\S/.test(l);}
-  function isJobEntry(l){return /\s*[|–—]\s*/.test(l)&&/[A-Za-z]{3,}/.test(l)&&l.trim().length>10&&l.trim().length<120;}
-
-  function addText(txt, size, bold, center, color, indent=0) {
-    doc.setFontSize(size);
-    doc.setFont('helvetica', bold?'bold':'normal');
-    doc.setTextColor(...(color||[0,0,0]));
-    const x = ml + indent;
-    const w = cw - indent;
-    const lines = doc.splitTextToSize(txt, w);
-    const lh = size * 1.4;
-    if (y + lines.length*lh > H-mb) { doc.addPage(); y = mt; }
-    lines.forEach(line=>{
-      doc.text(line, center?(W/2):x, y, center?{align:'center'}:{});
-      y += lh;
-    });
-    return lines.length * lh;
-  }
-
-  function addHRule(thick=0.5, color=[0,0,0]) {
-    doc.setDrawColor(...color);
-    doc.setLineWidth(thick);
-    doc.line(ml, y, W-mr, y);
-    y += 4;
-  }
-
-  const lines = text.split('\n');
-  let i=0;
-
-  // Skip blank lines at top
-  while(i<lines.length&&!lines[i].trim()) i++;
-  if(i>=lines.length) return doc.output('arraybuffer');
-
-  // Name
-  addText(stripMd(lines[i++]), 20, true, true); y+=2;
-
-  // Contact block
-  const contactParts=[];
-  while(i<lines.length&&lines[i].trim()&&!isSectionHeader(lines[i])){contactParts.push(stripMd(lines[i].trim()));i++;}
-  if(contactParts.length){
-    const joined=contactParts.join('  |  ');
-    addText(joined.length<=110?joined:contactParts[0], 9, false, true, [80,80,80]);
-    if(joined.length>110) contactParts.slice(1).forEach(p=>addText(p,9,false,true,[80,80,80]));
-  }
-  y+=4; addHRule(0.8); y+=2;
-
-  while(i<lines.length){
-    const raw=lines[i]; const s=raw.trim();
-    if(!s){y+=4;i++;continue;}
-    if(isSectionHeader(raw)){
-      y+=8;
-      addText(stripMd(s).toUpperCase(),10,true,false);
-      y-=2; addHRule(0.3,[160,160,160]); y+=2; i++;continue;
-    }
-    if(isBullet(raw)){
-      const c=stripMd(s.replace(/^\s*[•\-\*–·]\s*/,''));
-      addText('• '+c,10,false,false,[0,0,0],12); i++;continue;
-    }
-    if(isJobEntry(raw)){
-      const parts=s.split(/\s*[|–—]\s*/,2);
-      addText(stripMd(parts[0]),10,true,false);
-      if(parts[1]){y-=2;addText(stripMd(parts[1]),9,false,false,[80,80,80]);}
-      i++;continue;
-    }
-    if(/^\*\*.+\*\*$/.test(s)||/^__.+__$/.test(s)){addText(stripMd(s),10,true,false);i++;continue;}
-    const c=stripMd(s); if(c) addText(c,10,false,false); i++;
-  }
-  return doc.output('arraybuffer');
-}
-
-function buildCoverPDF(text) {
-  const {jsPDF} = window.jspdf;
-  const doc = new jsPDF({unit:'pt', format:'letter'});
-  const W = doc.internal.pageSize.getWidth();
-  const ml=72, mr=72, mt=72, mb=72;
-  let y = mt;
-  const cw = W - ml - mr;
-
-  function stripMd(s){return s.replace(/^#{1,3}\s*/,'').replace(/\*\*(.*?)\*\*/g,'$1').replace(/__(.*?)__/g,'$1').replace(/\*(.*?)\*/g,'$1').replace(/_(.*?)_/g,'$1').trim();}
-
-  const paras = text.trim().split(/\n{2,}/);
-  paras.forEach(para=>{
-    para=para.replace(/\n/g,' ').trim();
-    const clean=stripMd(para);
-    if(!clean) return;
-    doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(0,0,0);
-    const lines=doc.splitTextToSize(clean, cw);
-    const lh=11*1.5;
-    if(y+lines.length*lh > doc.internal.pageSize.getHeight()-mb){doc.addPage();y=mt;}
-    lines.forEach(l=>{doc.text(l,ml,y);y+=lh;});
-    y+=10;
-  });
-  return doc.output('arraybuffer');
-}
-
-function downloadPDF(type){
-  const bytes = type==='resume'?resumePdfBytes:coverPdfBytes;
-  if(!bytes) return;
-  const blob=new Blob([bytes],{type:'application/pdf'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download=(type==='resume'?'Tailored_Resume':'Cover_Letter')+'.pdf';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-// ── Main submit ───────────────────────────────────────────────────────────────
-document.getElementById('form').addEventListener('submit', async e=>{
-  e.preventDefault();
-
-  const provider = document.getElementById('provider').value;
-  const model    = document.getElementById('model').value;
-  const apiKey   = document.getElementById('apikey').value.trim();
-  if(!apiKey) return showErr('Please enter your API key.');
-
-  // Collect job description
-  const jobTab = document.querySelector('#jtabs .tab.active').dataset.p;
-  let jd='';
-  if(jobTab==='jp-text'){
-    jd=document.getElementById('job-text').value.trim();
-    if(!jd) return showErr('Please paste the job description.');
-  } else {
-    const f=document.getElementById('job-file').files[0];
-    if(!f) return showErr('Please upload a job file.');
-    jd=await readFileText(f);
-    if(!jd) return showErr('Could not read job file.');
-  }
-
-  // Collect resume
-  const resTab = document.querySelector('#rtabs .tab.active').dataset.p;
-  let resume='';
-  if(resTab==='rp-text'){
-    resume=document.getElementById('res-text').value.trim();
-    if(!resume) return showErr('Please paste your resume.');
-  } else {
-    const f=document.getElementById('res-file').files[0];
-    if(!f) return showErr('Please upload your resume file.');
-    resume=await readFileText(f);
-    if(!resume) return showErr('Could not read resume file.');
-  }
-
-  // UI — start
-  hideErr();
-  document.getElementById('form').style.opacity='0.4';
-  document.getElementById('form').style.pointerEvents='none';
-  document.getElementById('gobtn').disabled=true;
-  document.getElementById('prog').style.display='block';
-  document.getElementById('out').style.display='none';
-  startDots(); setStep(0);
-
-  try {
-    // Step 0: already have text
-
-    // Step 1: tailor resume
-    setStep(1);
-    const tailored = await callAI(resumeSystem(), resumeUser(resume, jd), provider, model, apiKey);
-
-    // Step 2: cover letter
-    setStep(2);
-    const cover = await callAI(coverSystem(), coverUser(resume, jd, tailored), provider, model, apiKey);
-
-    // Step 3: resume PDF
-    setStep(3);
-    resumePdfBytes = buildResumePDF(tailored);
-
-    // Step 4: cover PDF
-    setStep(4);
-    coverPdfBytes = buildCoverPDF(cover);
-
-    // Done
-    clearInterval(dotsIv);
-    for(let i=0;i<5;i++) document.getElementById('s'+i).classList.replace?.('active','done')||
-      (document.getElementById('s'+i).classList.remove('active'),document.getElementById('s'+i).classList.add('done'));
-
-    // Extract company/title for display
-    const cm=jd.match(/(?:at|@|for|join)\s+([A-Z][A-Za-z0-9&\s]{2,30}?)(?:\s*[,.]|\s+is\b|\s+we\b)/);
-    const company=cm?cm[1].trim():'';
-    const title=(jd.split('\n').find(l=>l.trim())||'').trim().slice(0,50);
-    document.getElementById('outsub').textContent=title+(company?' at '+company:'');
-    document.getElementById('prog').style.display='none';
-    document.getElementById('out').style.display='block';
-
-  } catch(err) {
-    clearInterval(dotsIv);
-    document.getElementById('prog').style.display='none';
-    document.getElementById('form').style.opacity='';
-    document.getElementById('form').style.pointerEvents='';
-    document.getElementById('gobtn').disabled=false;
-    showErr(err.message);
-  }
-});
-
-function showErr(m){const e=document.getElementById('err');e.textContent='⚠ '+m;e.style.display='block';}
+async function api(path,opts={}){const r=await fetch(path,opts);const b=await r.json().catch(()=>({}));if(!r.ok)throw new Error(b.error||('HTTP '+r.status));return b;}
+const postJSON=(p,d)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shortTime=s=>{if(!s)return '';const d=new Date(s);const t=new Date();const same=d.toDateString()===t.toDateString();return same?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString([],{month:'short',day:'numeric'});};
+function showErr(m){const e=document.getElementById('err');e.textContent='⚠ '+m;e.style.display='block';window.scrollTo({top:0,behavior:'smooth'});}
 function hideErr(){document.getElementById('err').style.display='none';}
-function reset(){
-  resumePdfBytes=null;coverPdfBytes=null;
-  document.getElementById('form').style.opacity='';
-  document.getElementById('form').style.pointerEvents='';
-  document.getElementById('gobtn').disabled=false;
-  document.getElementById('out').style.display='none';
-  document.getElementById('prog').style.display='none';
-  document.getElementById('form').reset();
-  document.querySelectorAll('.file-ok').forEach(e=>e.style.display='none');
-  hideErr(); onProvider();
+
+// ── View router ─────────────────────────────────────────────────────────────
+function go(view){
+  if(!backendMode){showErr('Backend offline — run `python app.py` first.');return;}
+  if(view!=='profiles'&&!profileId){showErr('Pick or create a profile first (step 1).');view='profiles';}
+  currentView=view;
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  document.querySelectorAll('.step-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+view).classList.add('active');
+  document.getElementById('tab-profiles').classList.toggle('done',!!profileId);
+  document.getElementById('tab-facts').classList.toggle('done',view==='chats');
+  hideErr();
+  if(view==='facts')loadFacts();
+  if(view==='chats')loadThreads();
 }
+
+// ── Step 1 · Profiles ───────────────────────────────────────────────────────
+async function loadProfiles(){
+  const profiles=await api('/api/profiles');
+  if(profileId&&!profiles.some(p=>p.id===profileId)){profileId=null;localStorage.removeItem('knap.profileId');}
+  const grid=document.getElementById('profile-grid');
+  grid.innerHTML=profiles.map(p=>
+    `<div class="pcard${p.id===profileId?' sel':''}" onclick="pickProfile(${p.id})"><h3>${esc(p.name)}</h3>`+
+    `<div class="meta">${p.fact_count} facts · #${p.id}<br>updated ${shortTime(p.updated_at)}</div>`+
+    `<div class="go">${p.id===profileId?'● ACTIVE — open facts →':'open →'}</div></div>`).join('')
+    ||'<div class="muted">No profiles yet — create your first one above.</div>';
+  const sel=profiles.find(p=>p.id===profileId);
+  profileName=sel?sel.name:'';
+  document.getElementById('tab-profiles').classList.toggle('done',!!profileId);
+}
+async function createProfile(){
+  const name=document.getElementById('profile-name').value.trim()||'Default Profile';
+  try{const p=await postJSON('/api/profile',{name});document.getElementById('profile-name').value='';
+    profileId=p.id;localStorage.setItem('knap.profileId',profileId);
+    await loadProfiles();hideErr();go('facts');
+  }catch(e){showErr(e.message);}
+}
+async function pickProfile(id){
+  profileId=id;localStorage.setItem('knap.profileId',id);
+  chatId=null;localStorage.removeItem('knap.chatId');
+  await loadProfiles();go('facts');
+}
+
+// ── Step 2 · Facts ──────────────────────────────────────────────────────────
+document.querySelectorAll('#view-facts .tabs').forEach(tabs=>{
+  tabs.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{
+    tabs.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');
+    tabs.parentElement.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById(tab.dataset.p).classList.add('active');
+  }));
+});
+document.getElementById('res-file').addEventListener('change',function(){
+  const el=document.getElementById('rfn');el.textContent=this.files[0]?'✓ '+this.files[0].name:'';el.style.display=this.files[0]?'block':'none';
+});
+async function loadFacts(){
+  document.getElementById('facts-pname').textContent=profileName||('profile #'+profileId);
+  if(!profileId)return;
+  try{const facts=await api(`/api/profile/${profileId}/facts`);
+    document.getElementById('facts').innerHTML=facts.map(f=>
+      `<li><span class="sec">${esc(f.section)}</span>`+(f.is_mandatory?'<span class="star" title="mandatory — never dropped">★</span>':'')+
+      `<span>${esc(f.content)}</span><button class="del" onclick="delFact(${f.id})">×</button></li>`).join('')
+      ||'<li style="opacity:.6">No facts yet — ingest a resume above.</li>';
+    document.getElementById('facts-meta').textContent=`${facts.length} facts stored · ★ mandatory = never dropped by the knapsack`;
+  }catch(e){showErr(e.message);}
+}
+async function ingestFile(){
+  const f=document.getElementById('res-file').files[0];
+  if(!f)return showErr('Choose a resume file first.');
+  const fd=new FormData();fd.append('resume_file',f);
+  try{const r=await (await fetch(`/api/profile/${profileId}/ingest`,{method:'POST',body:fd})).json();
+    if(r.error)throw new Error(r.error);hideErr();await loadFacts();
+  }catch(e){showErr(e.message);}
+}
+async function ingestText(){
+  const t=document.getElementById('res-text').value.trim();
+  if(!t)return showErr('Paste resume text first.');
+  try{await postJSON(`/api/profile/${profileId}/ingest`,{resume_text:t});hideErr();
+    document.getElementById('res-text').value='';await loadFacts();
+  }catch(e){showErr(e.message);}
+}
+async function addFact(){
+  const section=document.getElementById('fact-section').value.trim();
+  const content=document.getElementById('fact-content').value.trim();
+  const m=document.getElementById('fact-mandatory').value;
+  if(!section||!content)return showErr('Section and content are required.');
+  const body={section,content};if(m)body.is_mandatory=(m==='true');
+  try{await postJSON(`/api/profile/${profileId}/facts`,body);hideErr();
+    document.getElementById('fact-content').value='';await loadFacts();
+  }catch(e){showErr(e.message);}
+}
+async function delFact(fid){
+  try{await api(`/api/fact/${fid}`,{method:'DELETE'});await loadFacts();}catch(e){showErr(e.message);}
+}
+
+// ── Step 3 · Chats ──────────────────────────────────────────────────────────
+async function loadThreads(){
+  document.getElementById('chats-pname').textContent=profileName||('profile #'+profileId);
+  try{
+    threads=await api(`/api/profile/${profileId}/chats`);
+    if(chatId&&!threads.some(t=>t.id===chatId)){chatId=null;localStorage.removeItem('knap.chatId');}
+    renderThreads();
+    if(chatId)openChat(chatId,true);
+    else document.getElementById('chat-main').innerHTML=
+      `<div class="empty-chat"><div class="big">💬</div><div>Pick a chat, or start a new application.<br>Each chat is one JD threaded under this profile.</div></div>`;
+  }catch(e){showErr(e.message);}
+}
+function renderThreads(){
+  const q=(document.getElementById('chat-search').value||'').toLowerCase();
+  const list=threads.filter(t=>(t.title+' '+(t.company||'')+' '+(t.job_title||'')).toLowerCase().includes(q));
+  document.getElementById('thread-list').innerHTML=list.map(t=>{
+    const init=((t.company||t.title||'?')[0]||'?').toUpperCase();
+    const sub=t.jd_id?`${esc(t.company||'')} · ${esc(t.job_title||'')}${t.role_type?' · '+esc(t.role_type):''}`:'No JD attached yet';
+    const badge=t.latest_run?`<div class="unread" title="latest run: ${esc(t.latest_run.weakest_section||'no gaps')}">●</div>`:'';
+    return `<div class="thread${t.id===chatId?' active':''}" onclick="openChat(${t.id})"><div class="avatar">${esc(init)}</div>`+
+      `<div style="min-width:0;flex:1"><div class="tt">${esc(t.title)}</div><div class="ts">${sub}</div></div>`+
+      `<div style="display:flex;flex-direction:column;align-items:flex-end"><div class="tm">${shortTime(t.updated_at)}</div>${badge}</div></div>`;
+  }).join('')||'<div class="muted" style="padding:16px">No chats yet — start one above.</div>';
+}
+function openNewChat(){
+  document.getElementById('newchat-jd').value='';
+  api('/api/jds').then(jds=>{
+    document.getElementById('newchat-existing').innerHTML='<option value="">— none —</option>'+
+      jds.map(j=>`<option value="${j.id}">#${j.id} ${esc(j.job_title||'Role')}${j.company?' @ '+esc(j.company):''}</option>`).join('');
+  }).catch(()=>{});
+  document.getElementById('newchat-veil').classList.add('open');
+}
+function closeNewChat(){document.getElementById('newchat-veil').classList.remove('open');}
+async function createChat(){
+  const text=document.getElementById('newchat-jd').value.trim();
+  const existing=document.getElementById('newchat-existing').value;
+  try{
+    let body={};
+    if(text)body={jd_text:text};
+    else if(existing)body={jd_id:Number(existing)};
+    else body={title:'Untitled application'};
+    const t=await postJSON(`/api/profile/${profileId}/chats`,body);
+    closeNewChat();hideErr();
+    await loadThreads();openChat(t.id);
+  }catch(e){showErr(e.message);}
+}
+async function deleteChat(id){
+  if(!confirm('Delete this chat? The JD and past runs are kept.'))return;
+  try{await api(`/api/chats/${id}`,{method:'DELETE'});
+    if(chatId===id){chatId=null;localStorage.removeItem('knap.chatId');}
+    await loadThreads();hideErr();
+  }catch(e){showErr(e.message);}
+}
+function skillChips(struct){
+  const req=(struct?.required_skills||[]).map(s=>`<span class="chip req">${esc(s)}</span>`).join('');
+  const nice=(struct?.nice_to_have||[]).map(s=>`<span class="chip nice">${esc(s)}</span>`).join('');
+  return req+nice;
+}
+async function openChat(id,silent){
+  chatId=id;localStorage.setItem('knap.chatId',id);
+  renderThreads();
+  const main=document.getElementById('chat-main');
+  main.innerHTML=`<div class="empty-chat"><span class="spin"></span>Loading chat…</div>`;
+  try{
+    const t=await api(`/api/chats/${id}`);
+    currentChat=t;
+    const head=`<div class="chat-head"><div class="avatar">${esc(((t.company||t.title||'?')[0]||'?').toUpperCase())}</div>`+
+      `<div><div class="tt">${esc(t.title)}</div><div class="ts">${t.jd_id?esc((t.job_title||'')+(t.company?' @ '+t.company:''))+' · '+esc(t.role_type||''):('chat #'+t.id+' · no JD yet')}</div></div>`+
+      `<div class="acts"><button class="icon-btn" onclick="deleteChat(${t.id})">delete</button></div></div>`;
+    let bubbles='';
+    if(t.jd){
+      const reqs=(t.jd.requirements||[]).filter(r=>r.category==='required').map(r=>r.skill);
+      const nice=(t.jd.requirements||[]).filter(r=>r.category!=='required').map(r=>r.skill);
+      bubbles+=`<div class="bubble in"><div class="who">📋 Job description</div>`+
+        `<div><strong>${esc(t.jd.job_title||'Role')}</strong>${t.jd.company?' @ '+esc(t.jd.company):''} <span class="chip role">${esc(t.jd.role_type||'?')}</span></div>`+
+        `<div class="chips">${reqs.map(s=>`<span class="chip req">${esc(s)}</span>`).join('')}${nice.map(s=>`<span class="chip nice">${esc(s)}</span>`).join('')}</div>`+
+        `<div class="time">${shortTime(t.created_at)}</div></div>`;
+    } else {
+      bubbles+=`<div class="bubble in"><div class="who">📋 Job description</div>No JD attached yet — paste one with “Attach JD” below.<div class="time">${shortTime(t.created_at)}</div></div>`;
+    }
+    for(const r of (t.runs||[])){
+      const fb=r.feedback||{};
+      if(fb.kind==='tailor'){
+        bubbles+=`<div class="bubble out"><div class="who">✉️ Tailored PDFs · run #${r.id}</div>`+
+          `<div><strong>${esc(fb.job_title||'Role')}</strong>${fb.company?' @ '+esc(fb.company):''}</div>`+
+          `<div class="dl-grid"><a class="dl-card" href="/api/runs/${r.id}/download/resume" download><div class="dl-label">📄 Resume</div><div class="dl-cta">↓ Download</div></a>`+
+          `<a class="dl-card" href="/api/runs/${r.id}/download/cover" download><div class="dl-label">✉️ Cover letter</div><div class="dl-cta">↓ Download</div></a></div>`+
+          `<div class="time">${shortTime(r.created_at)}</div></div>`;
+        continue;
+      }const secs=fb.sections||{};
+      const rows=Object.entries(secs).map(([s,v])=>{
+        const pct=Math.round((v.coverage??0)*100);
+        const miss=(v.missing||[]).map(m=>`<span class="chip miss">${esc(m)}</span>`).join('');
+        return `<div class="bar-row"><div class="bar-head"><span>${esc(s)}</span><span>${pct}%</span></div>`+
+          `<div class="bar${pct<50?' low':''}"><div style="width:${pct}%"></div></div></div>${miss?`<div class="chips">${miss}</div>`:''}`;
+      }).join('');
+      bubbles+=`<div class="bubble out"><div class="who">📊 Analysis · run #${r.id}</div>`+
+        (fb.weakest_section?`<div><strong>Weakest: ${esc(fb.weakest_section)}</strong> — ${esc(fb.reasoning||'')}</div>`:`<div>${esc(fb.reasoning||'No gaps found 🎉')}</div>`)+
+        rows+`<div class="time">${shortTime(r.created_at)}</div></div>`;
+    }
+    main.innerHTML=head+`<div class="timeline" id="timeline">${bubbles}</div>`+
+      `<div class="composer"><div class="row">`+
+      `<button class="btn-line" onclick="chatRun()">▶ Run analysis</button>`+
+      `<button class="btn-line" onclick="chatRerun()">↻ Re-run + diff</button>`+
+      `<button class="btn-line" onclick="chatAllocate()">🧮 Allocation</button>`+
+      (t.jd_id?'':`<button class="btn-line" onclick="chatAttach()">📋 Attach JD</button>`)+
+      `<button class="btn-line" onclick="chatTailorForm()">✉️ Tailor PDFs</button>`+
+      `</div><div id="chat-extra"></div><div id="chat-tailor"></div></div>`;
+    const tl=document.getElementById('timeline');tl.scrollTop=tl.scrollHeight;
+  }catch(e){if(!silent)showErr(e.message);}
+}
+async function chatRun(){
+  if(!currentChat?.jd_id)return showErr('Attach a JD to this chat first.');
+  const extra=document.getElementById('chat-extra');
+  extra.innerHTML='<div class="muted"><span class="spin"></span>Scoring + knapsack…</div>';
+  try{
+    const r=await postJSON('/api/runs',{profile_id:profileId,jd_id:currentChat.jd_id});
+    hideErr();await loadThreads();openChat(chatId,true);
+    document.getElementById('chat-extra').innerHTML=
+      `<div class="callout ok">Run #${r.run_id} stored — timeline updated. ${esc(r.feedback.reasoning||'')}</div>`;
+    const tl=document.getElementById('timeline');if(tl)tl.scrollTop=tl.scrollHeight;
+  }catch(e){showErr(e.message);extra.innerHTML='';}
+}
+async function chatRerun(){
+  const extra=document.getElementById('chat-extra');
+  const last=(currentChat?.runs||[]).slice(-1)[0];
+  if(!last)return showErr('No runs yet — run an analysis first.');
+  extra.innerHTML='<div class="muted"><span class="spin"></span>Re-running…</div>';
+  try{
+    const r=await postJSON(`/api/runs/${last.id}/rerun`,{});
+    hideErr();await loadThreads();openChat(chatId,true);
+    const d=Object.entries(r.diff||{}).map(([s,v])=>{
+      const tags=[...(v.newly_matched||[]).map(m=>`<span class="chip nice">+ ${esc(m)}</span>`),
+                  ...(v.newly_missing||[]).map(m=>`<span class="chip miss">− ${esc(m)}</span>`)].join('');
+      return `<div class="muted">${esc(s)}: ${v.delta==null?'?':((v.delta>=0?'+':'')+Number(v.delta).toFixed(2))}</div>${tags?`<div class="chips">${tags}</div>`:''}`;
+    }).join('')||'<div class="muted">No section changes.</div>';
+    document.getElementById('chat-extra').innerHTML=
+      `<div class="callout ok">↻ Re-run #${r.run_id} vs #${r.prev_run_id}:</div>`+d;
+  }catch(e){showErr(e.message);extra.innerHTML='';}
+}
+async function chatAllocate(){
+  if(!currentChat?.jd_id)return showErr('Attach a JD to this chat first.');
+  const extra=document.getElementById('chat-extra');
+  extra.innerHTML='<div class="muted"><span class="spin"></span>Allocating…</div>';
+  try{
+    const a=await postJSON('/api/allocate',{profile_id:profileId,jd_id:currentChat.jd_id});
+    hideErr();
+    extra.innerHTML=Object.entries(a.sections).map(([s,v])=>{
+      const sel=v.selected.map(f=>`<li><span class="sec">${esc(f.section)}</span>${f.is_mandatory?'<span class="star">★</span>':''}<span>${esc(f.content)}</span></li>`).join('');
+      const drop=v.dropped.map(f=>`<li class="dropped"><span class="sec">${esc(f.section)}</span><span>${esc(f.content)}</span></li>`).join('');
+      return `<div class="field-label" style="margin-top:10px">${esc(s)} — ${v.selected.length} kept / ${v.dropped.length} dropped</div><ul class="facts" style="max-height:180px">${sel}${drop}</ul>`;
+    }).join('')+`<div class="muted">Total utility ${Number(a.total_utility).toFixed(2)} · ★ mandatory, never dropped</div>`;
+  }catch(e){showErr(e.message);extra.innerHTML='';}
+}
+async function chatAttach(){
+  document.getElementById('attach-jd-text').value='';
+  document.getElementById('attach-jd-fn').style.display='none';
+  document.getElementById('attach-jd-file').value='';
+  try{
+    const jds=await api('/api/jds');
+    document.getElementById('attach-jd-existing').innerHTML='<option value="">— none —</option>'+
+      jds.map(j=>`<option value="${j.id}">#${j.id} ${esc(j.job_title||'Role')}${j.company?' @ '+esc(j.company):''}</option>`).join('');
+  }catch(e){}
+  document.querySelectorAll('#attach-veil .tab').forEach(t=>t.classList.toggle('active',t.dataset.p==='ap-text'));
+  document.querySelectorAll('#attach-veil .tab-panel').forEach(p=>p.classList.toggle('active',p.id==='ap-text'));
+  document.getElementById('attach-veil').classList.add('open');
+}
+function closeAttach(){document.getElementById('attach-veil').classList.remove('open');}
+async function attachJDById(jdId){
+  await api(`/api/chats/${chatId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({jd_id:jdId})});
+  closeAttach();hideErr();await loadThreads();openChat(chatId,true);
+}
+async function attachJDText(){
+  const text=document.getElementById('attach-jd-text').value.trim();
+  if(!text)return showErr('Paste the job description first.');
+  try{
+    const jd=await postJSON('/api/jds',{raw_text:text});
+    await attachJDById(jd.id);
+  }catch(e){showErr(e.message);}
+}
+async function attachJDFile(){
+  const f=document.getElementById('attach-jd-file').files[0];
+  if(!f)return showErr('Choose a job file first.');
+  const fd=new FormData();fd.append('jd_file',f);
+  try{
+    const r=await fetch('/api/jds',{method:'POST',body:fd});
+    const jd=await r.json();if(jd.error)throw new Error(jd.error);
+    await attachJDById(jd.id);
+  }catch(e){showErr(e.message);}
+}
+async function attachJDExisting(){
+  const id=Number(document.getElementById('attach-jd-existing').value);
+  if(!id)return showErr('Select a job first.');
+  try{await attachJDById(id);}catch(e){showErr(e.message);}
+}
+document.getElementById('attach-jd-file').addEventListener('change',function(){
+  const el=document.getElementById('attach-jd-fn');
+  el.textContent=this.files[0]?'✓ '+this.files[0].name:'';
+  el.style.display=this.files[0]?'block':'none';
+});
+document.querySelectorAll('#attach-veil .tab').forEach(tab=>tab.addEventListener('click',()=>{
+  document.querySelectorAll('#attach-veil .tab').forEach(t=>t.classList.remove('active'));
+  tab.classList.add('active');
+  document.querySelectorAll('#attach-veil .tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(tab.dataset.p).classList.add('active');
+}));
+// ── Tailor inside a chat ────────────────────────────────────────────────────
+const MODELS={claude:[{v:"claude-opus-4-5",l:"Claude Opus 4.5"},{v:"claude-sonnet-4-6",l:"Claude Sonnet 4.6"},{v:"claude-haiku-4-5-20251001",l:"Claude Haiku 4.5"}],
+  gemini:[{v:"gemini-2.5-flash",l:"Gemini 2.5 Flash"},{v:"gemini-2.5-flash-lite",l:"Gemini 2.5 Flash-Lite"},{v:"gemini-2.5-pro",l:"Gemini 2.5 Pro"}]};
+function tailorModels(){const p=document.getElementById('t-provider').value;
+  document.getElementById('t-model').innerHTML=MODELS[p].map(m=>`<option value="${m.v}">${m.l}</option>`).join('');
+  const k=p==='claude'?'__ANTHROPIC_KEY__':'__GEMINI_KEY__';
+  document.getElementById('t-apikey').value=k.startsWith('__')?'':k;}
+function chatTailorForm(){
+  if(!currentChat?.jd_id)return showErr('Attach a JD to this chat first.');
+  document.getElementById('chat-tailor').innerHTML=
+    `<div class="row-2" style="margin-top:12px"><div><div class="field-label">Provider</div>`+
+    `<select id="t-provider" onchange="tailorModels()"><option value="claude">Claude</option><option value="gemini">Gemini</option></select></div>`+
+    `<div><div class="field-label">Model</div><select id="t-model"></select></div></div>`+
+    `<div class="field-label">API Key</div><div class="key-wrap"><input type="password" id="t-apikey" placeholder="Paste API key">`+
+    `<button class="key-toggle" onclick="const i=document.getElementById('t-apikey');i.type=i.type==='password'?'text':'password'">👁</button></div>`+
+    `<button class="btn-line" onclick="chatTailor()">Tailor PDFs for this chat →</button><div id="t-prog"></div><div id="t-out"></div>`;
+  tailorModels();
+}
+async function chatTailor(){
+  const provider=document.getElementById('t-provider').value;
+  const model=document.getElementById('t-model').value;
+  const apiKey=document.getElementById('t-apikey').value.trim();
+  if(!apiKey&&!confirm('No API key — try server-side keys from .env?'))return;
+  const prog=document.getElementById('t-prog'),out=document.getElementById('t-out');
+  prog.innerHTML='<div class="muted"><span class="spin"></span>Tailoring + PDFs…</div>';out.innerHTML='';
+  try{
+    const [jd,facts]=await Promise.all([api(`/api/chats/${chatId}`).then(c=>api(`/api/jds/${c.jd_id}`)),api(`/api/profile/${profileId}/facts`)]);
+    if(!facts.length)throw new Error('Profile has no facts — add some in step 2.');
+    const fd=new FormData();fd.append('provider',provider);fd.append('model',model);fd.append('api_key',apiKey);
+    fd.append('profile_id',String(profileId));fd.append('jd_id',String(currentChat.jd_id));
+    fd.append('job_text',jd.raw_text);fd.append('resume_text',facts.map(f=>`[${f.section}] ${f.content}`).join('\n'));
+    const {job_id}=await (await fetch('/api/tailor',{method:'POST',body:fd})).json().then(b=>{if(b.error)throw new Error(b.error);return b;});
+    const st=await new Promise((resolve,reject)=>{
+      const iv=setInterval(async()=>{try{
+        const s=await api(`/api/status/${job_id}`);
+        prog.innerHTML=`<div class="muted"><span class="spin"></span>Step ${s.step??0}/5…</div>`;
+        if(s.status==='done'){clearInterval(iv);resolve(s);}
+        else if(s.status==='error'){clearInterval(iv);reject(new Error(s.error||'Tailoring failed'));}
+      }catch(e){clearInterval(iv);reject(e);}},1500);});
+    prog.innerHTML='';
+    out.innerHTML=`<div class="dl-grid"><a class="dl-card" href="/api/download/${job_id}/resume" download><div class="dl-label">📄 Tailored Resume</div><div class="dl-cta">↓ Download</div></a>`+
+      `<a class="dl-card" href="/api/download/${job_id}/cover" download><div class="dl-label">✉️ Cover Letter</div><div class="dl-cta">↓ Download</div></a></div>`+
+      `<div class="muted">${esc(st.job_title||'')} ${st.company?'@ '+esc(st.company):''} · posted to this chat's timeline ↓</div>`;
+    hideErr();
+    await loadThreads();openChat(chatId,true);
+  }catch(e){prog.innerHTML='';showErr(e.message);}
+}
+
+// ── Boot ────────────────────────────────────────────────────────────────────
+(async function boot(){
+  try{
+    await loadProfiles();
+    backendMode=true;
+    const b=document.getElementById('backend-badge');
+    b.innerHTML='● Backend connected · 1 profile : N JD chats';
+    document.getElementById('foot-status').textContent='connected ✓';
+    if(profileId){const p=await api('/api/profiles').then(ps=>ps.find(p=>p.id===profileId));profileName=p?p.name:'';go('chats');}
+  }catch(e){
+    backendMode=false;
+    const b=document.getElementById('backend-badge');
+    b.classList.add('off');b.textContent='○ Backend offline — run `python app.py`, then reload';
+    document.getElementById('foot-status').textContent='offline — start `python app.py`';
+  }
+})();
 </script>
 </body>
 </html>

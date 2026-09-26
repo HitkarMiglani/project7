@@ -8,6 +8,10 @@ import os
 from pathlib import Path
 from typing import Union
 
+from src.logger import get_logger
+
+logger = get_logger("parser")
+
 
 def extract_text_from_pdf(source: Union[str, bytes, Path]) -> str:
     """Extract text from a PDF file path or bytes."""
@@ -22,7 +26,9 @@ def extract_text_from_pdf(source: Union[str, bytes, Path]) -> str:
     else:
         raise ValueError("source must be a file path or bytes")
 
-    return "\n".join(pages).strip()
+    text = "\n".join(pages).strip()
+    logger.info("Extracted %d chars from %d PDF pages", len(text), len(pages))
+    return text
 
 
 def extract_text_from_docx(source: Union[str, bytes, Path]) -> str:
@@ -35,7 +41,9 @@ def extract_text_from_docx(source: Union[str, bytes, Path]) -> str:
         doc = Document(source)
 
     paragraphs = [para.text for para in doc.paragraphs if para.text.strip()]
-    return "\n".join(paragraphs).strip()
+    text = "\n".join(paragraphs).strip()
+    logger.info("Extracted %d chars from %d DOCX paragraphs", len(text), len(paragraphs))
+    return text
 
 
 def extract_text(source: Union[str, bytes, Path], filename: str = "") -> str:

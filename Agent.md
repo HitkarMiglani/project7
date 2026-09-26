@@ -28,41 +28,59 @@ proj/
 ├── progress.md                # 🚨 MASTER ROADMAP: Phase & Stage checklist, completion tracker
 ├── Journey.md                 # 🚨 DECISION LOG: Iteration journal, ADRs, engineering rationale
 ├── Agent.md                   # 🚨 ONBOARDING GUIDE: This file
-├── SystemDesign.md            # Comprehensive System Design Document
-├── TechStack_Verification.md  # Architectural trade-off analysis
-├── KnapResume_Features_...md  # Phase-wise feature specification
+├── instruct.md                # Prompt style guide loaded by src/tailor.py (stays at root — code dependency)
 │
 ├── src/                       # Core Application Modules
 │   ├── __init__.py
 │   ├── database.py            # SQLite engine, connection WAL pragma listeners, SessionLocal, Base
-│   ├── models.py              # SQLAlchemy ORM models (Profile, ProfileFact, JD, JDRequirement, RunLog, Claim)
+│   ├── models.py              # ORM models (Profile, ProfileFact, JD, JDRequirement, RunLog, Claim, ChatThread)
+│   ├── logger.py              # Centralized logging (console + rotating file, never logs keys)
 │   ├── parser.py              # Text extraction for PDF (pdfplumber/pypdf), DOCX (python-docx), and TXT
+│   ├── resume_parser.py       # (Phase 1) Structured resume → discrete facts lowering
 │   ├── web_context.py         # Company context enrichment via Brave Search API
-│   ├── tailor.py              # Multi-provider LLM prompt assembly and unified AI caller (Claude/Gemini)
+│   ├── tailor.py              # Multi-provider LLM assembly + score→allocate orchestration (Claude/Gemini)
 │   ├── pdf_generator.py       # ReportLab flowable PDF generation for resumes and cover letters
 │   ├── profile_service.py     # (Phase 1) Profile and ProfileFact CRUD service layer
-│   ├── jd_structuring.py      # (Phase 2) KeyBERT keyword extraction & role-type classification
+│   ├── jd_structuring.py      # (Phase 2) Cleaning, KeyBERT keywords, role classification, JD persistence
 │   ├── scoring.py             # (Phase 3) MiniLM cosine similarity & RapidFuzz token scoring
 │   ├── allocator.py           # (Phase 3) 0/1 Knapsack dynamic programming allocator
+│   ├── claims.py              # (Phase 4) Claim extraction & [F<id>] citation parser
 │   ├── verifier.py            # (Phase 4) Hybrid cosine pre-screen + MiniLM2 NLI cross-encoder verifier
 │   └── feedback.py            # (Phase 5) Weakest-section gap analysis and reasoning engine
 │
-├── tests/                     # Automated Pytest Suite
+├── tests/                     # Automated Pytest Suite (in-memory SQLite `in_memory_db`)
 │   ├── __init__.py
-│   ├── conftest.py            # Pytest fixtures (in-memory SQLite `in_memory_db`)
-│   ├── test_models.py         # Unit tests for database models, constraints, and embeddings
-│   ├── test_profile_persistence.py  # Tests for profile service layer and CRUD
-│   ├── test_jd_structuring.py       # Tests for JD parsing and keyword extraction
-│   ├── test_allocator.py            # Optimality proofs and tests for knapsack DP
-│   └── test_verifier.py             # Adversarial and verification pipeline tests
+│   ├── conftest.py            # Pytest fixtures
+│   ├── test_models.py         # DB models, constraints, embeddings
+│   ├── test_profile_service.py  # Profile/fact CRUD service layer
+│   ├── test_profile_persistence.py  # Flask profile/fact REST endpoints
+│   ├── test_resume_parser.py  # Resume structure extraction & ingestion
+│   ├── test_jd_structuring.py # JD cleaning, keywords, role classification, persistence
+│   ├── test_scoring.py        # Semantic scoring engine
+│   ├── test_allocator.py      # Knapsack optimality proofs & edge cases
+│   ├── test_orchestration.py  # Score→allocate→prompt pipeline integration
+│   ├── test_claims.py         # Claim extraction & citations
+│   ├── test_verifier.py       # Hybrid verification + adversarial suite
+│   ├── test_feedback.py       # Feedback loop, runs API, rerun diffs
+│   ├── test_pipeline_api.py   # JD/allocation endpoints + served UI checks
+│   ├── test_chats.py          # Chat threads (1:N profile→JD)
+│   ├── test_tailor_runs.py    # Tailor→chat RunLog persistence + downloads
+│   └── test_pdf_generator.py  # PDF round-trip formatting guards
 │
 ├── alembic/                   # Database Migrations
 │   ├── env.py                 # Alembic environment configured for src.database
 │   └── versions/              # Migration revision scripts
 │
-└── docs/                      # Frontend / Static Assets
-    ├── index.html             # Web UI interface
-    └── privacy.html           # Local privacy disclaimer
+├── docs/                      # Frontend + Design Docs
+    ├── index.html             # Web UI interface (3-view SPA: profiles → facts → JD chats)
+    ├── privacy.html           # Local privacy disclaimer
+    └── design/                # System design & verification docs
+        ├── SystemDesign.md            # Comprehensive System Design Document
+        ├── SystemDesign_Template.md   # Design doc template
+        ├── TechStack_Verification.md  # Architectural trade-off analysis
+        └── KnapResume_Features_TechStack_BuildPlan.md  # Phase-wise feature spec
+│
+└── samples/                   # Sample resumes & outputs (regenerate stale PDFs post-fixes)
 ```
 
 ---

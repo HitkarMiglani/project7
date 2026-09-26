@@ -9,6 +9,10 @@ import re
 import httpx
 from typing import Optional
 
+from src.logger import get_logger
+
+logger = get_logger("web_context")
+
 
 def _clean_text(text: str, max_chars: int = 3000) -> str:
     text = re.sub(r"\s+", " ", text).strip()
@@ -19,6 +23,7 @@ def fetch_brave_search(query: str, num_results: int = 3) -> str:
     """Query Brave Search API for company/role context."""
     api_key = os.getenv("BRAVE_API_KEY")
     if not api_key:
+        logger.debug("Brave search skipped: BRAVE_API_KEY not set")
         return ""
 
     try:
@@ -36,8 +41,10 @@ def fetch_brave_search(query: str, num_results: int = 3) -> str:
             desc = result.get("description", "")
             if title or desc:
                 snippets.append(f"- {title}: {desc}")
+        logger.info("Brave search returned %d snippets for query=%r", len(snippets), query[:60])
         return "\n".join(snippets)
-    except Exception:
+    except Exception as e:
+        logger.warning("Brave search failed: %s", e)
         return ""
 
 
@@ -51,6 +58,7 @@ def fetch_company_context(job_description: str, job_url: str = "") -> str:
     # Try to get context from job URL page
     if job_url:
         try:
+            logger.info("Fetching company context from URL=%s", job_url[:120])
             resp = httpx.get(job_url, timeout=10, follow_redirects=True,
                              headers={"User-Agent": "Mozilla/5.0"})
             if resp.status_code == 200:
@@ -58,8 +66,8 @@ def fetch_company_context(job_description: str, job_url: str = "") -> str:
                 text = re.sub(r"<[^>]+>", " ", resp.text)
                 text = _clean_text(text, 2000)
                 context_parts.append(f"Job posting content:\n{text}")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("URL fetch failed during context building: %s", e)
 
     # Try Brave search for company info
     # Extract likely company name from JD (first proper noun sequence)
@@ -73,4 +81,6 @@ def fetch_company_context(job_description: str, job_url: str = "") -> str:
         if search_result:
             context_parts.append(f"Company context for {company_name}:\n{search_result}")
 
-    return "\n\n".join(context_parts) if context_parts else "No additional web context available."
+    result = "\n\n".join(context_parts) if context_parts else "No additional web context available."
+    logger.info("Company context built: %d chars", len(result))
+    return result

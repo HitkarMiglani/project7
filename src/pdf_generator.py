@@ -12,8 +12,10 @@ Parsing strategy:
   - Everything else: body text
 """
 
+import time
 import re
 from pathlib import Path
+from xml.sax.saxutils import escape as _xml_escape
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
@@ -26,6 +28,45 @@ from reportlab.platypus import (
     KeepTogether,
 )
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+
+from src.logger import get_logger
+
+logger = get_logger("pdf_generator")
+
+
+# ── Unicode → ASCII normalization ─────────────────────────────────────────────
+# ReportLab's built-in Helvetica cannot render most non-Latin-1 punctuation:
+# bullets extract as (cid:127), en/em dashes and middots as "?". Since output
+# must stay ATS-friendly (plain ASCII parses everywhere), normalize before
+# building Paragraphs. Latin-1 accents (e.g. é) are left intact — WinAnsi
+# handles them.
+
+_PUNCT_MAP = {
+    "\u2018": "'", "\u2019": "'", "\u201a": "'", "\u201b": "'",
+    "\u201c": '"', "\u201d": '"', "\u201e": '"', "\u201f": '"',
+    "\u2022": "-", "\u2023": "-", "\u2043": "-", "\u25aa": "-",
+    "\u25cf": "-", "\u25cb": "-", "\u00b7": "-",
+    "\u2013": "-", "\u2014": "-", "\u2212": "-",
+    "\u2026": "...", "\u00a0": " ", "\u2000": " ", "\u2001": " ",
+    "\u2002": " ", "\u2003": " ", "\u2009": " ", "\u200a": " ",
+    "\u200b": "", "\u200c": "", "\u200d": "", "\ufeff": "",
+    "\u00ab": '"', "\u00bb": '"', "\u2039": "'", "\u203a": "'",
+}
+_PUNCT_RE = re.compile("|".join(re.escape(k) for k in _PUNCT_MAP))
+
+
+def _normalize_text(text: str) -> str:
+    """Map fancy Unicode punctuation to ASCII equivalents."""
+    return _PUNCT_RE.sub(lambda m: _PUNCT_MAP[m.group(0)], text or "")
+
+
+def _P(text: str, style) -> Paragraph:
+    """
+    Single choke point for Paragraph construction: normalize Unicode,
+    then XML-escape so literal &, <, > (e.g. "R&D", "<products>") render
+    as text instead of being parsed as markup.
+    """
+    return Paragraph(_xml_escape(_normalize_text(text)), style)
 
 
 # ── Known section header keywords ────────────────────────────────────────────
@@ -136,12 +177,16 @@ def _build_styles():
 # ── Line classification helpers ───────────────────────────────────────────────
 
 def _strip_markdown(line: str) -> str:
-    """Remove markdown formatting: ##, **, __, *, _"""
+    """
+    Remove markdown formatting: ## headers, **/​__ bold, `code`, fences.
+    Single * and _ are intentionally left alone — stripping them mangles
+    identifiers like my_variable and expressions like 5 * 8.
+    """
     line = re.sub(r"^#{1,3}\s*", "", line)
+    line = re.sub(r"^```.*$", "", line)
     line = re.sub(r"\*\*(.*?)\*\*", r"\1", line)
     line = re.sub(r"__(.*?)__", r"\1", line)
-    line = re.sub(r"\*(.*?)\*", r"\1", line)
-    line = re.sub(r"_(.*?)_", r"\1", line)
+    line = re.sub(r"`([^`]*)`", r"\1", line)
     return line.strip()
 
 
@@ -162,8 +207,12 @@ def _is_section_header(raw: str) -> bool:
     if not clean:
         return False
 
-    # ALL CAPS (and not a bullet or contact line)
+    # ALL CAPS (and not a bullet, contact line, date, or job entry)
     if clean.isupper() and 2 < len(clean) < 50 and not clean.startswith("•"):
+        if _is_date_only(clean):
+            return False
+        if re.search(r"[|–—]", clean):
+            return False  # e.g. "STAFF ENGINEER | ACME CORP" is a job entry
         return True
 
     # Matches a known keyword (whole line or whole line ≈ keyword)
@@ -221,12 +270,14 @@ def _split_job_entry(line: str):
 
 def _parse_resume_to_flowables(text: str, styles: dict) -> list:
     story = []
-    lines = text.split("\n")
+    # Normalize once up front so classification sees what will render
+    # (• bullets become "-", –/— become "-", ``` fences handled below).
+    lines = [_normalize_text(l) for l in (text or "").split("\n")]
 
-    # Remove leading/trailing blank lines
-    while lines and not lines[0].strip():
+    # Remove leading/trailing blank lines (and stray ``` fence lines)
+    while lines and (not lines[0].strip() or lines[0].strip().startswith("```")):
         lines.pop(0)
-    while lines and not lines[-1].strip():
+    while lines and (not lines[-1].strip() or lines[-1].strip().startswith("```")):
         lines.pop()
 
     if not lines:
@@ -236,7 +287,7 @@ def _parse_resume_to_flowables(text: str, styles: dict) -> list:
 
     # ── Name (first non-empty line) ───────────────────────────────────────────
     name_line = _strip_markdown(lines[0])
-    story.append(Paragraph(name_line, styles["name"]))
+    story.append(_P(name_line, styles["name"]))
     i = 1
 
     # ── Contact block (consecutive non-empty lines until blank or section) ────
@@ -255,10 +306,10 @@ def _parse_resume_to_flowables(text: str, styles: dict) -> list:
         # Join on one line with separators if short, else stack them
         joined = "  |  ".join(contact_parts)
         if len(joined) <= 100:
-            story.append(Paragraph(joined, styles["contact"]))
+            story.append(_P(joined, styles["contact"]))
         else:
             for cp in contact_parts:
-                story.append(Paragraph(cp, styles["contact"]))
+                story.append(_P(cp, styles["contact"]))
 
     story.append(Spacer(1, 4))
     story.append(HRFlowable(width="100%", thickness=0.8, color=colors.black, spaceAfter=4))
@@ -268,59 +319,60 @@ def _parse_resume_to_flowables(text: str, styles: dict) -> list:
         raw = lines[i]
         stripped = raw.strip()
 
-        # Blank line → small spacer
-        if not stripped:
-            story.append(Spacer(1, 3))
+        # Blank line or stray code fence → small spacer / skip
+        if not stripped or stripped.startswith("```"):
+            if not stripped:
+                story.append(Spacer(1, 3))
             i += 1
             continue
 
-        # Section header
+        # Section header (kept with its rule so it never strands at page bottom)
         if _is_section_header(raw):
-            clean_header = _strip_markdown(stripped).upper()
-            # Group header + following content to avoid orphaned headers
             story.append(Spacer(1, 8))
-            story.append(Paragraph(clean_header, styles["section"]))
-            story.append(HRFlowable(
-                width="100%", thickness=0.4,
-                color=colors.HexColor("#aaaaaa"), spaceAfter=4
-            ))
+            story.append(KeepTogether([
+                _P(_strip_markdown(stripped).upper(), styles["section"]),
+                HRFlowable(
+                    width="100%", thickness=0.4,
+                    color=colors.HexColor("#aaaaaa"), spaceAfter=4
+                ),
+            ]))
             i += 1
             continue
 
-        # Bullet point
+        # Bullet point (ASCII "-" — renders in Helvetica where • does not)
         if _is_bullet(raw):
             clean = re.sub(r"^\s*[•\-\*–·]\s*", "", stripped)
             clean = _strip_markdown(clean)
-            story.append(Paragraph(f"• {clean}", styles["bullet"]))
+            story.append(_P(f"- {clean}", styles["bullet"]))
             i += 1
             continue
 
         # Date-only line (standalone dates under a job)
         if _is_date_only(stripped):
-            story.append(Paragraph(stripped, styles["job_meta"]))
+            story.append(_P(stripped, styles["job_meta"]))
             i += 1
             continue
 
         # Job entry line (Role | Company | Date)
         if _is_job_entry(raw):
             role, meta = _split_job_entry(stripped)
-            story.append(Paragraph(_strip_markdown(role), styles["job_role"]))
+            story.append(_P(_strip_markdown(role), styles["job_role"]))
             if meta:
-                story.append(Paragraph(_strip_markdown(meta), styles["job_meta"]))
+                story.append(_P(_strip_markdown(meta), styles["job_meta"]))
             i += 1
             continue
 
         # Bold-only line (e.g. **Company Name**) → treat as sub-heading
         if re.match(r"^\*\*.+\*\*$", stripped) or re.match(r"^__.+__$", stripped):
             clean = _strip_markdown(stripped)
-            story.append(Paragraph(clean, styles["job_role"]))
+            story.append(_P(clean, styles["job_role"]))
             i += 1
             continue
 
         # Default: body text
         clean = _strip_markdown(stripped)
         if clean:
-            story.append(Paragraph(clean, styles["body"]))
+            story.append(_P(clean, styles["body"]))
         i += 1
 
     return story
@@ -332,10 +384,10 @@ def _parse_letter_to_flowables(text: str, styles: dict) -> list:
     story = []
 
     # Split on double newlines to get paragraphs
-    raw_paras = re.split(r"\n{2,}", text.strip())
+    raw_paras = re.split(r"\n{2,}", _normalize_text(text or "").strip())
 
     for para in raw_paras:
-        para = para.strip()
+        para = para.strip().strip("`")
         if not para:
             continue
 
@@ -344,7 +396,7 @@ def _parse_letter_to_flowables(text: str, styles: dict) -> list:
         clean = _strip_markdown(para)
 
         if clean:
-            story.append(Paragraph(clean, styles["body"]))
+            story.append(_P(clean, styles["body"]))
             story.append(Spacer(1, 10))
 
     return story
@@ -354,6 +406,7 @@ def _parse_letter_to_flowables(text: str, styles: dict) -> list:
 
 def generate_resume_pdf(text: str, output_path: str) -> str:
     """Render resume text to a PDF file. Returns the output path."""
+    start = time.time()
     styles = _build_styles()
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
@@ -368,12 +421,16 @@ def generate_resume_pdf(text: str, output_path: str) -> str:
     )
 
     story = _parse_resume_to_flowables(text, styles)
+    n_flowables = len(story)  # build() consumes the list — count first
     doc.build(story)
+    logger.info("Resume PDF generated: %s (%d flowables, %.1fs)",
+                output_path, n_flowables, time.time() - start)
     return output_path
 
 
 def generate_cover_letter_pdf(text: str, output_path: str) -> str:
     """Render cover letter text to a PDF file. Returns the output path."""
+    start = time.time()
     styles = _build_styles()
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
@@ -388,5 +445,8 @@ def generate_cover_letter_pdf(text: str, output_path: str) -> str:
     )
 
     story = _parse_letter_to_flowables(text, styles)
+    n_flowables = len(story)  # build() consumes the list — count first
     doc.build(story)
+    logger.info("Cover letter PDF generated: %s (%d flowables, %.1fs)",
+                output_path, n_flowables, time.time() - start)
     return output_path

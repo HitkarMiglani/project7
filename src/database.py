@@ -12,6 +12,10 @@ from contextlib import contextmanager
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 
+from src.logger import get_logger
+
+logger = get_logger("database")
+
 # Project root directory and default database path
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = os.environ.get("DATABASE_PATH", str(BASE_DIR / "knapresume.db"))
@@ -50,17 +54,22 @@ Base = declarative_base()
 def get_db_session() -> Generator[Session, None, None]:
     """Provide a transactional scope around a series of operations."""
     session = SessionLocal()
+    logger.debug("DB session opened")
     try:
         yield session
         session.commit()
+        logger.debug("DB session committed")
     except Exception:
         session.rollback()
+        logger.exception("DB session rolled back")
         raise
     finally:
         session.close()
+        logger.debug("DB session closed")
 
 
 def init_db():
     """Create all registered database tables if they do not already exist."""
     import src.models  # Ensure all models are imported before creating tables
     Base.metadata.create_all(bind=engine)
+    logger.info("Database initialized at %s", DB_PATH)

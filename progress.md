@@ -8,19 +8,19 @@
 
 ## 📊 Project Status Dashboard
 
-- **Current Phase:** Phase 1 — Profile Persistence Layer
-- **Current Stage:** Stage 1.2 — Profile & Fact CRUD Service Layer
-- **Overall Completion:** 20%
+- **Current Phase:** Phase 6 — Evaluation Harness & Benchmarking
+- **Current Stage:** Stage 6.1 — Fixture Dataset Construction
+- **Overall Completion:** 85%
 - **Status:** 🟢 Ready for Execution
 
 | Phase | Description | Target Timeline | Status | Stages Total | Stages Completed |
 |---|---|---|---|---|---|
 | **Phase 0** | Fork & Orient | 1 day | ✅ Completed | 4 | 4 |
-| **Phase 1** | Profile Persistence Layer | 4 days | 🔄 In Progress | 4 | 1 |
-| **Phase 2** | JD Structuring Engine | 3 days | ⏳ Pending | 3 | 0 |
-| **Phase 3** | Scoring & Knapsack Allocation | 4 days | ⏳ Pending | 4 | 0 |
-| **Phase 4** | Verification Layer (3-State) | 5 days | ⏳ Pending | 5 | 0 |
-| **Phase 5** | Weakest-Section Feedback Loop | 2 days | ⏳ Pending | 3 | 0 |
+| **Phase 1** | Profile Persistence Layer | 4 days | ✅ Completed | 4 | 4 |
+| **Phase 2** | JD Structuring Engine | 3 days | ✅ Completed | 3 | 3 |
+| **Phase 3** | Scoring & Knapsack Allocation | 4 days | ✅ Completed | 4 | 4 |
+| **Phase 4** | Verification Layer (3-State) | 5 days | ✅ Completed | 5 | 5 |
+| **Phase 5** | Weakest-Section Feedback Loop | 2 days | ✅ Completed | 3 | 3 |
 | **Phase 6** | Evaluation Harness & Benchmarking | 4 days | ⏳ Pending | 4 | 0 |
 | **Phase 7** | Export, Integration & Final Polish | 3 days | ⏳ Pending | 3 | 0 |
 
@@ -28,8 +28,14 @@
 
 ## 🎯 What is Next to be Picked Up (Immediate Action Item)
 
-1. **Phase 1 — Stage 1.2**: Implement `src/profile_service.py` to handle creation, retrieval, updates, and deletion of profile facts, metadata tagging, and vector serialization.
-2. **Phase 1 — Stage 1.3**: Wire resume file parsing (DOCX/PDF) into the profile service to auto-populate facts.
+1. **Phase 6 — Stage 6.1 — Fixture Dataset Construction**
+    - Create 10–15 realistic profile/JD fixture pairs across specializations (backend, frontend, data, devops, mobile, ML) as importable fixtures.
+    - Then 6.2 metric pipeline (keyword match, ATS density, fabrication rate, knapsack utilization); 6.3 needs live-LLM decision (baseline vs KnapResume burns API calls).
+
+2. **Phase 1 Gate — DONE (2026-09-24)**
+    - Full suite `pytest -q`: 57 passed (12 models + 17 service + 16 parser + 12 persistence).
+    - Restart persistence verified via temp `DATABASE_PATH` (count survives new process).
+    - `python -m py_compile` clean on `app.py` + touched modules.
 
 ---
 
@@ -80,102 +86,97 @@ Legend:
     - `RunLog` and `Claim` (id, run feedback, claim text, 3-state enum, similarity scores).
   - Initialize Alembic migration scripts and create initial schema migration (`55641e2e17b1_initial_schema.py`).
   - Write unit tests in `tests/test_models.py` verifying constraints, foreign keys, cascades, and vector serialization.
-- [/] **Stage 1.2 — Profile & Fact CRUD Service Layer**
-  - Create `src/profile_service.py` to handle creation, retrieval, updates, and deletion of profile facts.
-  - Implement binary vector serialization (`np.ndarray.tobytes()` and `np.frombuffer()`) for embeddings storage.
-  - Implement base metadata vs optional achievement fact tagging.
-- [ ] **Stage 1.3 — Document Ingestion (DOCX / Resume Parser Integration)**
-  - Integrate `python-docx` parsing in `src/parser.py` to extract structured profile sections.
-  - Auto-populate `Profile` and `ProfileFact` records on document upload.
-- [ ] **Stage 1.4 — REST Endpoints & Persistence Testing**
+- [x] **Stage 1.2 — Profile & Fact CRUD Service Layer**
+  - Created `src/profile_service.py` with full CRUD for profiles and facts.
+  - Implemented binary vector embedding (de)serialization via `set_embedding`/`get_embedding`.
+  - Implemented `is_mandatory` metadata tagging (`infer_is_mandatory`) with structural-section and date/contact-content heuristics.
+  - Added `tests/test_profile_service.py` (17 tests); full suite 29 passed.
+- [x] **Stage 1.3 — Document Ingestion (DOCX / Resume Parser Integration)**
+  - Created `src/resume_parser.py` — `parse_resume(text)` lowers raw resume text into a normalized structure (name, contact block, summary, sections incl. `experience`/`education`/`projects` entry parsing), `to_facts(structure)` flattens entries+bullets into discrete facts with `is_mandatory` metadata tagging.
+  - Added `ingest_resume()` and `ingest_document()` to `src/profile_service.py` to auto-populate `Profile`/`ProfileFact` records on document upload (Stage 1.3 objective). `ingest_document()` bridges `src/parser.py:extract_text()` for path/bytes/plain-text sources.
+  - Wrote `tests/test_resume_parser.py` (16 tests); full suite 45 passed.
+- [x] **Stage 1.4 — REST Endpoints & Persistence Testing**
   - Add Flask routes in `app.py`:
-    - `POST /api/profile` (Create/Update profile)
-    - `GET /api/profile/<id>/facts` (List facts)
+    - `POST /api/profile` (Create profile; with `id` also updates)
+    - `GET /api/profiles` (List profiles)
+    - `GET /api/profile/<id>` (Get single profile)
+    - `DELETE /api/profile/<id>` (Delete profile + cascade facts)
+    - `GET /api/profile/<id>/facts` (List facts, `?section=` filter)
     - `POST /api/profile/<id>/facts` (Add fact)
     - `PUT /api/fact/<id>` (Update fact)
     - `DELETE /api/fact/<id>` (Delete fact)
+    - `POST /api/profile/<id>/ingest` (Auto-populate from uploaded DOCX/PDF/TXT or `resume_text`)
   - Write test suite in `tests/test_profile_persistence.py`.
-- [ ] **Phase 1 Test & Verification Gate (Required before Phase 2)**
-  - Run full test suite: `pytest -v`.
-  - Fix any regressions or test failures across models, service layer, and API endpoints (100% pass rate).
-  - Verify server restart persistence (DoD).
+- [x] **Phase 1 Test & Verification Gate (Required before Phase 2)**
+  - Full suite `pytest -q`: 57 passed (12 models + 17 service + 16 parser + 12 persistence), 0 failures.
+  - `python -m py_compile` clean on `app.py` + touched modules.
+  - Server restart persistence verified (DoD): profile created in one process visible in a fresh process against the same SQLite file.
 
 ---
 
 ### Phase 2: JD Structuring Engine (Estimated: 3 Days)
 *Objective: Transform messy, unstructured Job Descriptions into normalized, categorized requirement objects.*
 
-- [ ] **Stage 2.1 — Text Cleaning & Boilerplate Filtering**
-  - Implement `src/jd_structuring.py` to strip standard EEO boilerplate, legal disclaimers, and company promo text.
-  - Extract company name, role title, and core requirement sections using regex and heuristic parsing.
-- [ ] **Stage 2.2 — KeyBERT Keyword & Skill Extraction**
-  - Integrate `KeyBERT` to extract unigram and bigram candidate technical skills and requirements.
-  - Separate requirements into `required_skills` vs `nice_to_have` using linguistic cues and section headers.
-- [ ] **Stage 2.3 — Role-Type Classification & Persistence**
-  - Classify role type (Backend, Frontend, Fullstack, Data, DevOps, Mobile, ML) using embedding cosine similarity against a fixed role taxonomy.
-  - Store structured JD output into `JD` and `JDRequirement` tables.
-  - Write unit tests in `tests/test_jd_structuring.py` against standard tech job postings.
+- [x] **Stage 2.1 — Text Cleaning & Boilerplate Filtering**
+  - Implemented `src/jd_structuring.py` (stdlib-only, no models): `clean_jd_text()` strips EEO/legal/promo boilerplate at line level, `extract_company()` / `extract_job_title()` via regex + heuristics, `extract_sections()` groups lines under canonical headers (`requirements`/`responsibilities`/`qualifications`/`nice_to_have`/`about`/`benefits`/`other`), `structure_jd()` orchestrates to `{raw_text, cleaned_text, company, job_title, sections}`.
+  - Wrote `tests/test_jd_structuring.py` (16 tests); full suite 73 passed.
+- [x] **Stage 2.2 — KeyBERT Keyword & Skill Extraction**
+  - Added `extract_keywords()` (KeyBERT uni+bigram, MMR, lazy singleton on shared `all-MiniLM-L6-v2`) and `extract_requirements()` (per-line taxonomy scan over ~70-skill `SKILL_TAXONOMY` + KeyBERT discovery mapped onto it; `nice_to_have` by section origin + cue regex `preferred|bonus|plus|familiarity|exposure|...`; required wins on conflict; importance-weighted + sorted).
+  - `tests/test_jd_structuring.py` extended; full suite 84 passed.
+- [x] **Stage 2.3 — Role-Type Classification & Persistence**
+  - Added `classify_role_type()` (deterministic title override → embedding cosine vs 7 role anchors → keyword-overlap fallback; returns `backend|frontend|fullstack|data|devops|mobile|ml`) and `persist_jd()` (full pipeline → `JD` + `JDRequirement` rows with skill embeddings for Stage 3; optional-session pattern like `profile_service`).
+  - Phase 2 gate: full suite 84 passed, `py_compile` clean.
 
 ---
 
 ### Phase 3: Scoring & Knapsack Allocation (Estimated: 4 Days)
 *Objective: Implement deterministic, mathematical content selection using 0/1 Knapsack dynamic programming per resume section.*
 
-- [ ] **Stage 3.1 — Semantic Scoring Engine**
-  - Implement `src/scoring.py` using `sentence-transformers/all-MiniLM-L6-v2`.
-  - Compute cosine similarity matrix between candidate profile facts and structured JD requirements.
-  - Combine semantic similarity with exact/fuzzy token matching (`rapidfuzz`) to compute net fact utility $v_i$.
-- [ ] **Stage 3.2 — 0/1 Knapsack Dynamic Programming Allocator**
-  - Implement `src/allocator.py` with pure Python 0/1 Knapsack DP algorithm:
-    $$\text{Maximize } \sum v_i x_i \quad \text{subject to} \quad \sum w_i x_i \le W$$
-  - Define integer weights $w_i$ (character/bullet length) and section capacity $W$.
-  - Ensure mandatory structural facts (company name, role title, dates, education institution) are preserved while optimizing optional achievement bullets.
-- [ ] **Stage 3.3 — Orchestration Pipeline Integration**
-  - Wire allocator output into `src/tailor.py` before the LLM prompt is assembled.
-  - Constrain LLM rewriting strictly to the mathematically selected subset of facts.
-- [ ] **Stage 3.4 — Optimality & Edge-Case Verification**
-  - Write unit tests in `tests/test_allocator.py` proving provable global optimality on synthetic small test cases.
-  - Test edge cases: empty sections, zero capacity, facts exceeding section capacity.
+- [x] **Stage 3.1 — Semantic Scoring Engine**
+  - Implemented `src/scoring.py` on shared `all-MiniLM-L6-v2` singleton: `cosine_similarity_matrix()` (clip [0,1], precomputed-embedding reuse, defensive renormalize), `fuzzy_match_matrix()` (max(token_set, partial)/100), `score_facts()` → `v_i = max_j((alpha*cos + (1-alpha)*fuzz) * importance * category_weight)` with `required=1.0`/`nice_to_have=0.5`, best-match attribution, deterministic, empty-safe.
+  - Wrote `tests/test_scoring.py` (13 tests); full suite 97 passed.
+- [x] **Stage 3.2 — 0/1 Knapsack Dynamic Programming Allocator**
+  - Implemented `src/allocator.py` (pure Python, no new deps): `allocate_section()` pins mandatory facts (always kept, even over capacity) and runs classic 1D 0/1 DP over optional bullets under remaining budget; `allocate_facts()` groups by section with per-section capacities (`DEFAULT_SECTION_CAPACITY` + override). Weights = `len(content)` chars, explicit `weight` override supported.
+  - Wrote `tests/test_allocator.py` (12 tests: textbook greedy-failure optimality + 30-case brute-force fuzz, mandatory pinning, empty/zero/oversize/negative edges, determinism, grouping); full suite 109 passed.
+- [x] **Stage 3.3 — Orchestration Pipeline Integration**
+  - Wired score→allocate into `src/tailor.py`: `build_allocation_context(profile_id, jd_id)` (loads facts + JD requirements with stored embeddings → `score_facts()` → `allocate_facts()`), `render_allocated_resume_text()` (section-grouped prompt text), `tailor_resume_with_allocation()` (LLM sees ONLY the allocated subset — physical constraint — plus `ALLOCATION_SOURCE_NOTE` prompt constraint). `tailor_resume()` gained backward-compatible `source_note=""` (legacy prompts byte-identical).
+  - Wrote `tests/test_orchestration.py` (6 tests: relevant-selected/filler-dropped, missing profile/JD errors, mocked-LLM prompt constraint, empty-profile error, render grouping).
+- [x] **Stage 3.4 — Optimality & Edge-Case Verification**
+  - Extended `tests/test_allocator.py` to 17 tests (greedy-failure + 30-seed brute-force proofs, all-mandatory/exact-capacity/multi-oversize/absent-capacity/mandatory-weight edges).
+  - Phase 3 gate: full suite 120 passed, `py_compile` clean.
 
 ---
 
 ### Phase 4: Verification Layer (Highest Priority) (Estimated: 5 Days)
 *Objective: Build an enforced 3-state verification system (Verified / Inferred / Unsupported) and deterministically block hallucinations.*
 
-- [ ] **Stage 4.1 — Claim Extraction & Citation Parser**
-  - Update prompt templates in `src/tailor.py` to produce structured bullet claims linked to cited fact IDs.
-  - Implement claim extractor to parse generated resume output into discrete, testable claim statements.
-- [ ] **Stage 4.2 — Hybrid Verification Pipeline**
-  - Implement `src/verifier.py`:
-    - Fast embedding cosine pre-screen against cited facts:
-      - Score $\ge 0.85 \implies \text{\textbf{Verified}}$
-      - Score $\le 0.60 \implies \text{\textbf{Unsupported}}$
-    - Borderline claims ($0.60 < \text{Score} < 0.85$) evaluated via small NLI cross-encoder (`cross-encoder/nli-MiniLM2-L6-H768`).
-      - Entailment $\implies \text{\textbf{Verified}}$
-      - Neutral $\implies \text{\textbf{Inferred}}$
-      - Contradiction $\implies \text{\textbf{Unsupported}}$
-- [ ] **Stage 4.3 — Hallucination Blocking & Output Sanitization**
-  - Filter out or flag any `Unsupported` claims before passing text to PDF generation.
-  - Record claim states and similarity scores in `claims` table.
-- [ ] **Stage 4.4 — Adversarial Test Suite**
-  - Create adversarial test cases in `tests/test_verifier.py` injecting fabricated metrics, unearned titles, and absent skills.
-  - Ensure 100% detection and blocking rate on unsupported claims.
-- [ ] **Stage 4.5 — Multi-Provider Abstraction (Optional LiteLLM)**
-  - Validate `_call_ai()` dispatcher across Claude / Gemini / OpenAI; evaluate if LiteLLM package is needed.
+- [x] **Stage 4.1 — Claim Extraction & Citation Parser**
+  - Allocation prompts now emit cited facts: `render_allocated_resume_text()` prefixes `[F<id>]` bullets (backward-compatible `with_ids=False`), `ALLOCATION_SOURCE_NOTE` requires per-bullet citations and bans uncited bullets as fabrication.
+  - Created `src/claims.py`: `extract_claims()` parses bullets (`-/*/•/1.`) into `{text, cited_fact_ids, raw}` with continuation joining, header/blank handling, malformed-marker (`[F]/[Fx]/[12]`) tolerance, marker-only-bullet dropping.
+  - Wrote `tests/test_claims.py` (12 tests, fixture outputs only, incl. mocked prompt→claims roundtrip); full suite 132 passed.
+- [x] **Stage 4.2 — Hybrid Verification Pipeline**
+  - Implemented `src/verifier.py`: `cosine_to_facts()` (shared MiniLM singleton, precomputed-embedding reuse) → `verify_claim()` fast path (≥0.85 Verified, ≤0.60 Unsupported) → borderline NLI via `cross-encoder/nli-MiniLM2-L6-H768` (entail→Verified, neutral→Inferred, contradict→Unsupported; softmax probs as scores). Cited facts checked first, uncited screened against all facts; NLI failure falls back to cosine midpoint (≥0.72 Inferred else Unsupported).
+  - Wrote `tests/test_verifier.py` (14 tests: live identical/unrelated/paraphrase behavior, stubbed NLI label mapping, fallback paths, degenerate inputs); full suite 146 passed.
+- [x] **Stage 4.3 — Hallucination Blocking & Output Sanitization**
+  - `sanitize_text()` drops Unsupported bullets + continuations from generated text (headers/blanks/kept bullets verbatim) → `{sanitized_text, blocked, kept_count}`; `record_claims()` persists `{text, state, score, cited_fact_id}` rows to `claims` table (optional-session pattern, `ValueError` on missing run).
+- [x] **Stage 4.4 — Adversarial Test Suite**
+  - Extended `tests/test_verifier.py` to 17 tests: 6 live adversarials (fabricated metrics cited + uncited, unearned titles, absent skills) — 100% Unsupported; end-to-end blocking-rate test (2 legit verified + 6 fabricated → all 6 blocked, legit kept); citation-non-rescue test (exaggerated metric never Verifies).
+  - Phase 4 gate: full suite 149 passed, `py_compile` clean.
+- [x] **Stage 4.5 — Multi-Provider Abstraction (⏭️ SKIPPED)**
+  - Decision: skip LiteLLM. Existing `_call_ai()` dispatcher covers Claude/Gemini with zero deps; LiteLLM adds value only with OpenAI support or managed retry/cost tracking — neither required. Revisit if OpenAI provider is requested.
 
 ---
 
 ### Phase 5: Weakest-Section Feedback Loop (Estimated: 2 Days)
 *Objective: Provide actionable, explainable feedback on resume gaps and enable iterative profile editing.*
 
-- [ ] **Stage 5.1 — Gap Analysis & Weakest-Section Detector**
-  - Implement `src/feedback.py` to identify sections with the lowest requirement coverage or keyword overlap.
-  - Generate precise explanation strings (e.g., *"Matched 2/5 required skills in Experience; missing: Docker, Kubernetes"*).
-- [ ] **Stage 5.2 — Re-Run & Differential Reporting Endpoint**
-  - Add API support for rapid re-runs after fact edits (`POST /api/rerun/<job_id>`).
-  - Store iteration feedback in `run_logs` table.
-- [ ] **Stage 5.3 — Feedback Verification & Tests**
-  - Write test in `tests/test_feedback.py` verifying that editing profile facts directly updates feedback metrics on the subsequent run.
+- [x] **Stage 5.1 — Gap Analysis & Weakest-Section Detector**
+  - Implemented `src/feedback.py`: `analyze_gaps()` per-section required-skill coverage (matched = best_match + fuzzy ≥ 0.8 exact-mention rule or blended cosine/fuzzy ≥ 0.5; utility-only fallback), weakest = lowest coverage (utility tie-break, clean-sheet → None), precise reasoning strings ("Matched 1/2 required skills in Experience; missing: Docker").
+  - `build_feedback()` orchestrates allocation context + requirements; `diff_feedback()` per-section deltas (newly_matched/newly_missing).
+- [x] **Stage 5.2 — Re-Run & Differential Reporting Endpoint**
+  - `create_feedback_run()` persists completed RunLogs with feedback JSON; `rerun_feedback(run_id)` rebuilds post-edit + persists new run + coverage diff. `app.py`: `POST /api/runs`, `POST /api/runs/<id>/rerun`, `GET /api/runs/<id>` (404/400/422 mapping).
+- [x] **Stage 5.3 — Feedback Verification & Tests**
+  - Wrote `tests/test_feedback.py` (10 tests: gap units, missing-skill naming, edit→rerun improvement with `newly_matched == [Kubernetes]`, API flow + validation errors); full suite 159 passed. Phase 5 gate: `py_compile` clean.
 
 ---
 
@@ -217,3 +218,22 @@ Legend:
 | **2026-09-16** | Stage 0.3 | Baseline CLI (`main.py`) & Flask (`app.py`) execution, parser extraction, and ReportLab PDF generation verified. |
 | **2026-09-16** | Stage 0.4 | Dependencies added to `requirements.txt`, `src/database.py` scaffolded with SQLite WAL pragma listeners, and `tests/conftest.py` in-memory SQLite fixtures created. Phase 0 complete. |
 | **2026-09-16** | Stage 1.1 | SQLAlchemy ORM models implemented in `src/models.py`, Alembic migrations configured & executed, binary float32 vector serialization verified, pytest suite passing 100%. |
+| **2026-09-21** | Cross-cutting | Centralized logging added via `src/logger.py` (console + optional rotating file, `KNAP_LOG_LEVEL`/`KNAP_LOG_FILE`); wired into `app.py` (job lifecycle + request logging), `main.py` CLI, `tailor.py` (provider/model/latency), `parser.py`, `pdf_generator.py`, `web_context.py`, and `database.py`. API keys never logged. 6/6 tests passing. |
+| **2026-09-21** | Stage 1.2 | Profile & Fact service layer implemented in `src/profile_service.py`: full CRUD, binary float32 embedding serialization, `is_mandatory` metadata tagging via `infer_is_mandatory`. Added `tests/test_profile_service.py` (17 tests). Full suite: 29 passed. |
+| **2026-09-24** | Stage 1.3 | Document ingestion implemented: `src/resume_parser.py` (`parse_resume`/`to_facts`) + `ingest_resume()`/`ingest_document()` in `src/profile_service.py`. Added `tests/test_resume_parser.py` (16 tests). Full suite: 45 passed. Tracker synced (dashboard → Stage 1.4, fixed `parse_document()` naming error). |
+| **2026-09-24** | Stage 1.4 + Phase 1 Gate | REST endpoints wired in `app.py` (`POST /api/profile`, `GET /api/profiles`, `GET/DELETE /api/profile/<id>`, `GET/POST /api/profile/<id>/facts`, `PUT/DELETE /api/fact/<id>`, `POST /api/profile/<id>/ingest`) with 404/400/422 mapping + `init_db()` at startup. Added `tests/test_profile_persistence.py` (12 tests). Full suite: 57 passed. Restart persistence verified. Phase 1 complete → Phase 2. |
+| **2026-09-24** | Stage 2.1 | Text cleaning & boilerplate filtering implemented in `src/jd_structuring.py` (stdlib-only: `clean_jd_text`, `extract_company`, `extract_job_title`, `extract_sections`, `structure_jd`). Added `tests/test_jd_structuring.py` (16 tests). Full suite: 73 passed (venv python; system python lacks reportlab). |
+| **2026-09-24** | Stage 2.2 + 2.3, Phase 2 Gate | Keyword extraction (`extract_keywords` KeyBERT MMR + `extract_requirements` taxonomy-mapped, cue-split) and role classification (`classify_role_type` title→embedding→keyword-fallback) + `persist_jd()` (`JD`/`JDRequirement` rows with embeddings). Extended `tests/test_jd_structuring.py` to 27 tests. Full suite: 84 passed. Phase 2 complete → Phase 3. |
+| **2026-09-24** | Stage 3.1 | Semantic scoring engine in `src/scoring.py` (cosine matrix + max(token_set,partial) fuzzy blend, importance × category weights, precomputed-embedding reuse). Added `tests/test_scoring.py` (13 tests). Full suite: 97 passed. |
+| **2026-09-24** | Stage 3.2 | 0/1 knapsack DP allocator in `src/allocator.py` (mandatory pinned, char weights, per-section capacities). Added `tests/test_allocator.py` (12 tests incl. brute-force optimality proofs). Full suite: 109 passed. |
+| **2026-09-24** | Stage 3.3 + 3.4, Phase 3 Gate | Orchestration wired into `src/tailor.py` (`build_allocation_context`, `render_allocated_resume_text`, `tailor_resume_with_allocation` with physical + prompt subset constraints; backward-compatible `source_note`). Added `tests/test_orchestration.py` (6 tests) and extended `test_allocator.py` to 17. Full suite: 120 passed. Phase 3 complete → Phase 4. |
+| **2026-09-24** | Stage 4.1 | Cited-fact prompts (`[F<id>]` bullets + citation mandate in allocation note) and `src/claims.py` extractor (`extract_claims` → `{text, cited_fact_ids, raw}`). Added `tests/test_claims.py` (12 tests). Full suite: 132 passed. |
+| **2026-09-24** | Stage 4.2 + 4.3 | Hybrid verifier in `src/verifier.py` (cosine fast path + MiniLM2 NLI borderline judging, cited-first/uncited-screens-all, cosine-midpoint NLI fallback) plus `sanitize_text()` blocker and `record_claims()` persistence. Added `tests/test_verifier.py` (14 tests). Full suite: 146 passed. |
+| **2026-09-24** | Stage 4.4 + 4.5, Phase 4 Gate | Adversarial suite: 6 live fabrications at 100% Unsupported + end-to-end 100% blocking with legit preserved (`test_verifier.py` → 17 tests). Stage 4.5 LiteLLM SKIPPED (dispatcher sufficient; revisit for OpenAI). Full suite: 149 passed. Phase 4 complete → Phase 5. |
+| **2026-09-24** | Stage 5.1 + 5.2 + 5.3, Phase 5 Gate | Feedback loop in `src/feedback.py` (gap analysis, run/rerun with RunLog persistence, diffs) + `/api/runs` endpoints in `app.py`. Added `tests/test_feedback.py` (10 tests incl. edit→rerun improvement). Full suite: 159 passed. Phase 5 complete → Phase 6. |
+| **2026-09-24** | Pre-Phase-6 UI integration | Connected frontend to the implemented flow: new `POST/GET /api/jds` (+ `raw_text` on single-JD) and `POST /api/allocate` (embedding-stripped, JSON-safe) routes; rebuilt `docs/index.html` around profile → ingest/curate facts → structure JD → run/rerun feedback with diffs → backend tailor + PDF downloads (fixed stale Notion badge/branding). Added `tests/test_pipeline_api.py` (7 tests). Full suite: 166 passed. |
+| **2026-09-24** | Multi-view SPA + JD chats (1:N) | Split UI into 3 views (1 Profile build/select → 2 Facts ingest/curate → 3 WhatsApp-like chats, one thread per JD under a profile). New `ChatThread` model + Alembic migration (`1480e95b0f1c`) with chat CRUD/attach endpoints (thread cards carry JD summary + latest run; detail carries JD + runs timeline; runs survive thread deletion). Added `tests/test_chats.py` (8 tests). Full suite: 174 passed. |
+| **2026-09-24** | Tailor→chat integration | Tailor completions now post into chat timelines: `/api/tailor` accepts `profile_id`/`jd_id`, `_run()` persists a `kind=tailor` RunLog with PDF paths (also fixed a latent `started_at` KeyError that failed EVERY tailor job), new restart-safe `GET /api/runs/<id>/download/<doc>`, chat bubbles with persistent download links. Added `tests/test_tailor_runs.py` (4 tests). Full suite: 178 passed. |
+| **2026-09-24** | Attach-JD file drop | Replaced the `prompt()`-based chat JD attach with a 3-tab modal (paste text / drop PDF-DOCX-TXT-MD file / pick existing structured job); file path reuses server-side `extract_text` via `POST /api/jds`. Served-page test now pins the modal + no-`prompt()` rule. Full suite: 178 passed. |
+| **2026-09-24** | PDF formatting overhaul | Fixed `src/pdf_generator.py`: XML-escape choke point (`_P()` — `<products>`/`R&D` no longer eaten or mangled), Unicode→ASCII normalization (`•/·/–/—` rendered as `(cid:127)`/`?` in Helvetica — now `-`), header guards (date lines / `A \| B` caps lines no longer misread as sections), fence stripping, identifier-safe markdown (no more single-`*`/`_` stripping), KeepTogether section headers, pre-build flowable count. Added `tests/test_pdf_generator.py` (8 round-trip tests). Full suite: 186 passed. |
+| **2026-09-24** | Repo tidy: docs/design + samples | Sorted the root: 4 design docs → `docs/design/` (relative cross-links intact), 3 sample PDFs → `samples/`; kept `instruct.md` at root (code dependency of `tailor.py`), agent ops files + entry points untouched. Refreshed the `Agent.md` file map (incl. new modules/tests). Full suite: 186 passed. |
