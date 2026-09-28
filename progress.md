@@ -209,6 +209,95 @@ Legend:
 
 ---
 
+## 🚀 Version 2.0 Roadmap: LaTeX Template Engine, Structured Generation & ATS Valuation
+
+```
+Legend:
+[x] Completed
+[/] In Progress
+[ ] Pending
+[!] Blocked
+```
+
+### Phase v2.1: Schema Definition & LaTeX Engine Foundation (Estimated: 2 Days)
+*Objective: Build type-safe Pydantic models for structured resume output and implement a LaTeX-safe Jinja2 rendering engine with standard templates.*
+
+- [ ] **Stage v2.1.1 — Structured JSON Schemas (`src/schemas.py`)**
+  - Implement Pydantic models: `ContactInfo`, `CategorizedSkills`, `ExperienceItem`, `EducationItem`, `ProjectItem`, `ResumeData`, and `CoverLetterData`.
+  - Add validator hooks ensuring bullet points carry `[F<id>]` fact citations.
+- [ ] **Stage v2.1.2 — LaTeX Template Engine (`src/latex_engine.py`)**
+  - Setup Jinja2 environment with LaTeX-safe delimiters (`\BLOCK{...}`, `\VAR{...}`, `\#{...}`).
+  - Implement comprehensive LaTeX character escaping (`_`, `&`, `%`, `$`, `#`, `{`, `}`, `~`, `^`, `\`, `<`, `>`).
+- [ ] **Stage v2.1.3 — Built-in Templates Scaffolding (`templates/latex/`)**
+  - Create default templates: `classic_ats.tex` (standard single-column), `modern_tech.tex` (skill chips/navy headers), `compact_single_page.tex` (0.4in margins), `academic_entry.tex`.
+  - Write test suite (`tests/test_latex_engine.py`) verifying escaping, delimiters, and sample generation.
+
+---
+
+### Phase v2.2: Structured LLM Generation & Verification Integration (Estimated: 3 Days)
+*Objective: Update the LLM prompting and claim verification pipeline to operate directly on JSON structures rather than plain markdown.*
+
+- [ ] **Stage v2.2.1 — Structured Prompt Dispatcher (`src/tailor.py`)**
+  - Implement `tailor_resume_structured()` instructing the LLM to output conforming `ResumeData` JSON with `[F<id>]` citations inside bullets.
+  - Implement defensive JSON extractor handling potential markdown code-block wrapping.
+- [ ] **Stage v2.2.2 — Direct JSON Claim Verification & Sanitization (`src/verifier.py`)**
+  - Update `claims.py` and `verifier.py` to traverse `ResumeData.experience` and `projects` bullet arrays directly.
+  - Automatically strip unsupported bullets directly from the JSON structure prior to template compilation.
+- [ ] **Stage v2.2.3 — Deterministic ReportLab JSON Fallback (`src/pdf_generator.py`)**
+  - Implement `render_resume_data(resume_data: ResumeData)` in ReportLab providing a zero-regex, guaranteed-success direct PDF builder.
+
+---
+
+### Phase v2.3: Multi-Tier Compilation Waterfall & API Endpoints (Estimated: 2 Days)
+*Objective: Implement a resilient compilation strategy that works locally, in Docker, or on cloud platforms without failing.*
+
+- [ ] **Stage v2.3.1 — Compilation Waterfall Manager (`src/latex_compiler.py`)**
+  - Tier 1: Local / Container Binary (`tectonic` on-demand package fetching or `pdflatex`).
+  - Tier 2: Remote Microservice API (`LATEX_API_URL` calling self-hosted Gotenberg or latexonline.cc).
+  - Tier 3: Zero-dependency ReportLab JSON builder fallback.
+  - Tier 4: Direct export ("Open in Overleaf" URL generation + `.tex`/`.zip` bundle creation).
+- [ ] **Stage v2.3.2 — Web API Integration (`app.py`)**
+  - Expose `/api/templates` (list available templates and metadata).
+  - Add `/api/runs/<id>/tex`, `/api/runs/<id>/zip`, and `/api/runs/<id>/recompile` (re-render with different template/margins).
+
+---
+
+### Phase v2.4: 5-Dimension ATS Valuation & Scorecard Engine (Estimated: 2 Days)
+*Objective: Implement an objective, comprehensive ATS scoring and audit engine evaluating the completed resume.*
+
+- [ ] **Stage v2.4.1 — ATS Evaluator Core (`src/ats_evaluator.py`)**
+  - Dimension 1: Keyword & Hard Skill Matching (35% weight, contextual placement bonus in bullets).
+  - Dimension 2: Parseability & Structural Compliance (20% weight, contact info, standard headers, clean ASCII).
+  - Dimension 3: Google XYZ Formula Impact & Action Verb Density (20% weight, metrics check).
+  - Dimension 4: Section Organization & Relevance Hierarchy (15% weight).
+  - Dimension 5: Spatial Length & Page Fit (10% weight, single-page budget compliance).
+- [ ] **Stage v2.4.2 — Valuation API & Scorecard Generation**
+  - Return detailed audit scorecard with grade (A/B/C/D), numerical score (0-100), breakdown bars, and actionable gap recommendations.
+
+---
+
+### Phase v2.5: Section-Healing Improver Loop (Estimated: 2 Days)
+*Objective: Autonomously optimize weak sections through targeted multi-pass rewrites guided by the ATS Scorecard.*
+
+- [ ] **Stage v2.5.1 — Surgical Section Improver (`src/improver.py`)**
+  - Trigger rewrite loop if composite ATS score $< 85$ or weakest section coverage $< 80\%$.
+  - Prompt LLM to rewrite ONLY the targeted section JSON using specific missing facts.
+  - Re-verify citations and track composite iteration quality scores.
+
+---
+
+### Phase v2.6: SPA UI Integration & Multi-Format Exporter (Estimated: 2 Days)
+*Objective: Polish user experience with template controls, live ATS scorecard, and one-click export actions.*
+
+- [ ] **Stage v2.6.1 — Multi-Format Exporter (`src/export_engine.py`)**
+  - Implement Word `.docx` exporter via `python-docx` using `ResumeData`.
+  - Implement JSON Resume standard (`jsonresume.org`) schema exporter.
+- [ ] **Stage v2.6.2 — Frontend Scorecard & Template Switcher (`docs/index.html`)**
+  - Add template selector dropdown (Classic ATS, Modern Tech, Compact Single-Page).
+  - Add interactive ATS Valuation Scorecard with progress meters, matched skill badges, and Overleaf launch button.
+
+---
+
 ## 📈 Completed Milestones Log
 
 | Date | Phase / Stage | Summary of Completion |

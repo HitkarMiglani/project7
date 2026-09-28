@@ -51,58 +51,97 @@ instruct.md                # Anti-AI-writing prompt instructions
 
 ---
 
-## Version 2.0 (Planned - Iterative Improvement Loop)
-**Status**: Design complete, ready for implementation
+## Version 2.0 (Planned — LaTeX Template Engine, Structured Generation & ATS Valuation)
+**Status**: Architecture & Design Finalized, Ready for Execution
 
-### New Features
-1. **Structured JSON Output** (instead of plain text)
-   - LLM emits typed `ResumeData` JSON schema
-   - Deterministic PDF renderer (no fragile regex parsing)
-   - Categorized skills (Languages, Frameworks, Cloud/DevOps, Databases, Tools)
-   - Section ordering by allocation utility score (highest first)
+### Core Architectural Pillars (v2)
 
-2. **Iterative Improvement Loop** (max 3 LLM calls)
-   - Detect weakest section from feedback
-   - Rewrite ONLY that section to cover missing skills
-   - Re-verify after each iteration
-   - Enforce 1-page constraint via intelligent trimming
-   - Composite resume score tracking (verification rate + coverage + utility)
+#### 1. Structured JSON Generation Schema (`src/schemas.py`)
+- LLM emits a strictly validated `ResumeData` JSON schema with `[F<id>]` fact citations inside bullet strings.
+- Pydantic models for `ContactInfo`, `CategorizedSkills` (Languages, Frameworks, Tools, Databases), `ExperienceItem`, `EducationItem`, `ProjectItem`, and `CoverLetterData`.
+- Eliminates brittle regex parsing across the pipeline.
 
-3. **Enhanced PDF Formatting**
-   - Pure B&W, letter-style section separation (black rules)
-   - Structured contact block with labels
-   - Right-aligned dates in experience entries
-   - Skills rendered as categorized chips
-   - Business-letter format cover letter
+#### 2. Customizable LaTeX Template Engine (`src/latex_engine.py` + `templates/latex/`)
+- Jinja2 environment configured with custom LaTeX-safe delimiters (`\BLOCK{...}`, `\VAR{...}`, `\#{...}`).
+- Dedicated LaTeX character escaping pipeline (`&`, `%`, `$`, `#`, `_`, `{`, `}`, `~`, `^`, `\`, `<`, `>`).
+- **Default built-in templates**:
+  - `classic_ats.tex`: Standard single-column, horizontal rules, maximum ATS parseability.
+  - `modern_tech.tex`: Categorized skills chips, subtle navy/slate section headers.
+  - `compact_single_page.tex`: 0.4in margins, tight vertical spacing for dense profiles.
+  - `academic_entry.tex`: Focused on Education, Research, Publications, and Projects.
+- **Customization Parameters**: Margins (compact/standard/wide), font sizes (10–12pt), accent colors, date formatting, and dynamic section reordering.
 
-### New Files (v2)
+#### 3. Multi-Tier LaTeX Compilation Waterfall (`src/latex_compiler.py`)
+- **Tier 1 (Local / Container Binary)**: Executes `tectonic` (~35MB Rust binary, dynamic package fetching, zero 4GB TeX Live dependency) or `pdflatex`/`xelatex` in `PATH`.
+- **Tier 2 (Cloud / Remote Microservice)**: Optional HTTP call to `LATEX_API_URL` (self-hosted Gotenberg, latexonline.cc, or AWS Lambda).
+- **Tier 3 (Zero-Dependency ReportLab Fallback)**: Deterministic direct PDF builder rendering `ResumeData` directly to PDF without TeX dependencies.
+- **Tier 4 (User Direct Action)**: One-click "Open in Overleaf" button and downloadable `.tex` source / `.zip` bundle.
+
+#### 4. Dual-Scoring Model: Knapsack Content Selection vs. ATS Valuation
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                            Dual-Scoring Pipeline Architecture                               │
+├──────────────────────────────────────────────┬──────────────────────────────────────────────┤
+│ 🎒 Pre-Generation: Knapsack Scoring          │ 📊 Post-Generation: ATS Valuation Scorecard │
+│ (src/scoring.py & src/allocator.py)          │ (src/ats_evaluator.py)                       │
+├──────────────────────────────────────────────┼──────────────────────────────────────────────┤
+│ • Evaluates individual atomic profile facts  │ • Evaluates the entire generated resume      │
+│ • Blends Cosine Sim + Fuzzy String Match     │ • 5-Dimension Composite Audit (0–100 scale): │
+│ • 0/1 Knapsack DP (O(n · W)) selects optimal │   1. Keyword & Skill Match (35%)             │
+│   fact subset per section under budget       │   2. Parseability & Structure (20%)          │
+│ • Filters out noise BEFORE reaching LLM      │   3. Google XYZ Impact & Metrics (20%)       │
+│                                              │   4. Section Hierarchy & Ordering (15%)      │
+│                                              │   5. Spatial Length & 1-Page Fit (10%)       │
+│ • Goal: Optimal Content Selection            │ • Goal: Compliance, Quality & Recruiter Rank│
+└──────────────────────────────────────────────┴──────────────────────────────────────────────┘
+```
+
+#### 5. Autonomous Section-Healing Loop (`src/improver.py`)
+- Analyzes ATS Scorecard gaps post-generation.
+- If composite ATS score $< 85$ or required skill coverage $< 80\%$, executes targeted surgical rewrites on ONLY the weakest section JSON.
+- Re-verifies citations and halts within max 2–3 LLM passes.
+
+#### 6. Multi-Format Exporter & SPA UI Integration
+- Multi-format download endpoints: Compiled PDF, LaTeX `.tex`, Overleaf `.zip`, Word `.docx`, and JSON Resume.
+- Interactive ATS Scorecard bar in `docs/index.html` displaying matched/missing skill chips, XYZ verb statistics, and template customization controls.
+
+---
+
+### New & Modified File Inventory (v2)
+
 ```
 src/
-├── schemas.py             # ResumeData, CoverLetterData, ExperienceEntry TypedDicts
-├── improver.py            # Iterative improvement loop (max 3 calls, page constraint)
-└── (modified existing)
+├── schemas.py             # (NEW) Pydantic models (ResumeData, CategorizedSkills, etc.)
+├── latex_engine.py        # (NEW) Jinja2 LaTeX template renderer & escaping
+├── latex_compiler.py      # (NEW) Multi-tier compilation waterfall (Tectonic/API/Overleaf)
+├── ats_evaluator.py       # (NEW) 5-dimension ATS scoring & audit scorecard
+├── improver.py            # (NEW) Iterative section-healing loop
+├── export_engine.py       # (NEW) Multi-format export (DOCX, ZIP, JSON Resume)
+├── pdf_generator.py       # (MODIFIED) Add deterministic ReportLab JSON builder fallback
+├── tailor.py              # (MODIFIED) Structured JSON prompting with [F<id>] citations
+├── verifier.py            # (MODIFIED) Direct JSON claim extraction & sanitization
+└── app.py                 # (MODIFIED) Template endpoints, recompile, & ATS audit routes
+
+templates/latex/
+├── classic_ats.tex        # (NEW) Standard single-column ATS template
+├── modern_tech.tex        # (NEW) Technical template with skill chips
+├── compact_single_page.tex# (NEW) High-density 1-page template
+└── academic_entry.tex     # (NEW) Education & project-centric template
 ```
 
-### Modified Files (v1 → v2)
-```
-src/tailor.py              # + tailor_resume_structured(), tailor_resume_with_improvement_loop()
-src/pdf_generator.py       # + render_resume_data(), count_pdf_pages(), structured renderers
-src/app.py                 # Route allocation+improvement path in _run()
-src/main.py                # CLI --structured/--improve flags
-tests/
-├── test_structured_output.py
-├── test_improver.py
-└── test_pdf_generator.py  # Extended
-```
+---
 
-### v2 Capabilities (Incremental over v1)
-- ✅ Deterministic structured output → reliable PDF rendering
-- ✅ Section ordering by relevance score
-- ✅ Categorized skills layout
-- ✅ Max 3 LLM calls to fix weakest section
-- ✅ Automatic 1-page enforcement (trim/rewrite by utility)
-- ✅ Composite score tracking per iteration
-- ✅ Backward compatible with v1 plain-text path
+### v2 Phased Implementation Roadmap
+
+| Phase | Title | Scope & Deliverables |
+|---|---|---|
+| **v2.1** | Schema & LaTeX Engine | `schemas.py`, `latex_engine.py`, default `.tex` templates, Jinja2 escape tests |
+| **v2.2** | Structured LLM Pipeline | Prompt JSON schema in `tailor.py`, update `claims.py` & `verifier.py` for JSON |
+| **v2.3** | Compilation Waterfall | `latex_compiler.py` (Tectonic, Gotenberg/API, Overleaf, ReportLab JSON fallback) |
+| **v2.4** | ATS Valuation Engine | `ats_evaluator.py` (5 dimensions: Keywords, Parseability, XYZ Verbs, Hierarchy, Length) |
+| **v2.5** | Section-Healing Loop | `improver.py` multi-pass loop guided by ATS audit score |
+| **v2.6** | Multi-Format Export & UI | `export_engine.py` (DOCX, ZIP), template selector & ATS scorecard in `docs/index.html` |
 
 ---
 

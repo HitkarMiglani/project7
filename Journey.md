@@ -64,6 +64,43 @@
 
 ---
 
+### [2026-09-28] Iteration Entry: Version 2 Architecture & Comprehensive Build Plan
+- **Author:** Agent & Human Collaborative
+- **Status:** Completed (Design Finalized & Committed to Roadmap)
+
+#### 1. Objective & Scope
+Formulate the complete technical architecture and phased build roadmap for **KnapResume Version 2.0**: transitioning from heuristic plain-text parsing to a structured JSON generation model, customizable LaTeX template engine, cloud-resilient multi-tier compilation waterfall, dual-scoring system (Knapsack fact selection vs. 5-dimension ATS Valuation), and autonomous section-healing loop.
+
+#### 2. Key Decisions & Technical Reasoning
+- **Decision:** Structured JSON schema (`ResumeData`) with Pydantic models and embedded `[F<id>]` citations.
+  - *Reasoning:* Eliminates fragile regex header/entry guessing in document generation, ensuring deterministic layout and zero parsing errors across different LLM providers.
+- **Decision:** Jinja2 LaTeX Template Engine with custom delimiters (`\BLOCK{}`, `\VAR{}`) and dedicated LaTeX character escaping (`escape_latex`).
+  - *Reasoning:* Standard Jinja2 braces conflict directly with LaTeX commands. Custom delimiters allow full templating power without syntax corruption.
+- **Decision:** Multi-Tier LaTeX Compilation Waterfall (`src/latex_compiler.py`).
+  - *Reasoning:* Full TeX Live (4GB) breaks cloud serverless/Docker deployments. The 4-tier waterfall (Local Tectonic Rust binary [~35MB] $\to$ Remote Gotenberg/Cloudflare API $\to$ Zero-dependency ReportLab fallback $\to$ One-click Overleaf link) guarantees 100% compilation success in any hosting environment.
+- **Decision:** Clear Architectural Delineation: Knapsack Scoring vs. ATS Valuation.
+  - *Reasoning:* 
+    - *Knapsack Scoring (Pre-generation)*: Solves 0/1 DP mathematical content selection per section under character limits, filtering input before reaching the LLM.
+    - *ATS Valuation (Post-generation)*: Audits the final compiled document across 5 enterprise dimensions (Keyword Match [35%], Parseability [20%], Google XYZ Impact [20%], Hierarchy [15%], and Length Fit [10%]) on a 0–100 scale.
+- **Decision:** Autonomous Section-Healing Loop (`src/improver.py`).
+  - *Reasoning:* Guided by the ATS Scorecard gaps, targeted multi-pass rewrites are triggered on *only* the weakest section JSON rather than regenerating the entire document.
+
+#### 3. Code & Configuration Changes
+- `VERSIONS.md`: Fully drafted Version 2.0 architecture specification, file inventory, and dual-scoring pipeline diagram.
+- `progress.md`: Appended Phases v2.1 through v2.6 roadmap with granular stage definitions and deliverables.
+
+#### 4. Edge Cases, Failures & Mitigations
+- *Cloud / Serverless LaTeX failure:* Solved via Tectonic lightweight containerization, optional cloud API URL, and deterministic pure-Python ReportLab fallback.
+- *LaTeX special character corruption:* Addressed via dedicated sanitizer mapping `&, %, $, #, _, {, }, ~, ^, \, <, >`.
+
+#### 5. Verification & Test Results
+- Plan validated and verified against technical constraints and existing Phase 1–5 interfaces.
+
+#### 6. Next Steps
+- Execute **Phase v2.1**: Implement `src/schemas.py`, `src/latex_engine.py`, and default LaTeX templates in `templates/latex/`.
+
+---
+
 ### [2026-09-24] Iteration Entry: Repo Tidy (docs/design + samples Folders)
 - **Author:** Agent
 - **Status:** Completed
