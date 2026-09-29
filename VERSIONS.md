@@ -13,7 +13,7 @@
 - **Verification Pipeline**: 3-state (Verified/Inferred/Unsupported) via cosine + NLI cross-encoder
 - **Feedback Loop**: Weakest-section detection with keyword-gap reasoning, rerun with diffs
 - **PDF Generation**: ReportLab, ATS-friendly parsing (headers, bullets, job entries, contact)
-- **Notion Logging**: Optional via MCP (Model Context Protocol)
+
 
 ### Key Files (v1)
 ```

@@ -64,6 +64,202 @@
 
 ---
 
+### [2026-09-29] Iteration Entry: Phase 7 Complete (7.1 ATS Checklist, 7.2 Verify, 7.3 Smoke + Docs)
+- **Author:** Agent
+- **Status:** Completed
+
+#### 1. Objective & Scope
+Execute all of Phase 7: lightweight ATS checklist in API + UI (7.1), PDF/persistence verification (7.2), offline end-to-end smoke test + README docs with phase gate (7.3).
+
+#### 2. Key Decisions & Technical Reasoning
+- **Decision:** Checklist builder lives in `src/feedback.py` (stored on `RunLog.feedback` at creation), re-exported from `src/evaluation.py`.
+  - **Reasoning:** Chat timelines render from stored feedback, so persisting the checklist once makes it appear everywhere with no extra queries. `evaluation.py` importing it keeps one source of truth (feedback already owns the sections shape; lazy imports avoid cycles).
+- **Decision:** UI `scorecardHTML` is checklist-first (grade + global ✓/✕ chips + per-section bars), section-average fallback otherwise.
+  - **Reasoning:** Server grade uses the required-skill union; the old client grade averaged section coverages (same required set counted per section). Also fixed a latent crash where the old code called `.map` on the numeric `matched` count.
+- **Decision:** 7.2 verified with zero code changes (prior PDF overhaul + tailor-run persistence already cover it); 7.3 smoke runs fully offline with cosine-only verification.
+  - **Reasoning:** Re-running 27 targeted tests proves the DoD without churning stable code; the smoke test skips only live LLM calls (the one non-deterministic step).
+
+#### 3. Code & Configuration Changes
+- `src/feedback.py`: Added `ats_grade`/`build_ats_checklist`; `create_feedback_run` persists `ats_checklist` in stored feedback.
+- `src/evaluation.py`: Re-exports checklist builder; `get_ats_checklist()` unchanged in behavior.
+- `app.py`: `POST /api/runs`, `POST /api/runs/<id>/rerun`, `GET /api/runs/<id>` return `ats_checklist`.
+- `docs/index.html`: Checklist-first `scorecardHTML` + crash fix.
+- `tests/test_feedback.py`: +3 checklist tests; `tests/test_e2e_smoke.py`: created (full offline path).
+- `README.md`: ATS checklist, eval outputs, `phase6-batch`/`phase6-eval` commands, status.
+- `progress.md`: Phase 7 all `[x]`, dashboard → 95%.
+
+#### 4. Edge Cases, Failures & Mitigations
+- *Checklist/grade duplication risk between `feedback.py` and `evaluation.py`:*
+  - *Mitigation:* Single implementation in `feedback.py`, imported by `evaluation.py`.
+- *GET run for tailor-kind rows lacking profile/JD links:*
+  - *Mitigation:* Checklist attached best-effort (try/except ValueError), payload always returns.
+
+#### 5. Verification & Test Results
+- `pytest tests/test_feedback.py tests/test_evaluation.py`: **20 passed**.
+- Targeted 7.2 re-run (pdf + tailor-runs + pipeline-api + chats): **27 passed**.
+- `pytest tests/test_e2e_smoke.py`: **1 passed**.
+- Phase 7 gate — `pytest -q` full suite: **204 passed**; `py_compile` clean on `app.py`, `main.py`, `src/evaluation.py`, `src/feedback.py`.
+
+#### 6. Next Steps
+- Remaining backlog: **Stage 6.1** fixture dataset + live benchmark run → root `Evaluation_Report.md` from real data (needs LLM cost decision).
+- Optional v2 roadmap (LaTeX engine, ATS valuator, improver loop) per `progress.md`.
+
+---
+
+### [2026-09-29] Iteration Entry: Phase 6 Stages 6.2–6.4 (Metrics, Benchmark, Report)
+- **Author:** Agent
+- **Status:** Completed (code; live benchmark run pending)
+
+#### 1. Objective & Scope
+Build the remaining Phase 6 harness code (6.2 metric pipeline, 6.3 baseline-vs-knap comparison, 6.4 tables/charts/report) as user requested, offline-testable with no LLM calls. Leave 6.1 fixtures + live run + root `Evaluation_Report.md` for next steps.
+
+#### 2. Key Decisions & Technical Reasoning
+- **Decision:** New `src/evaluation.py` with four deterministic 0–1 metrics (keyword union match, ATS mentions/100w saturated at 10, fabrication unsupported/total, utilization weight/capacity; baseline utilization = 0 by construction).
+  - **Reasoning:** Metrics must be computable from existing artifacts (feedback sections, tailored text, claim states, allocation weights) with no new models. Union-match avoids double-counting the same required skill across sections.
+- **Decision:** Pure `evaluate_texts()` + injectable `evaluate_profile_jd()` (tailor/verify callables) instead of hardwiring LLM calls.
+  - **Reasoning:** Keeps the 7 new tests offline and fast; the CLI injects real `tailor_resume`/`tailor_resume_with_allocation`/`verify_claims` for live runs.
+- **Decision:** `save_report()` (pandas CSV + matplotlib Agg grouped bars + markdown) + new `main.py phase6-eval` CLI for one profile+JD live comparison.
+  - **Reasoning:** Closes the whole pipeline in CLI as requested; Agg backend works headless on Windows.
+
+#### 3. Code & Configuration Changes
+- `src/evaluation.py`: Created (metrics, compare, DB/LLM wiring, reporting).
+- `tests/test_evaluation.py`: Created (7 tests: metric units, fabrication win, direction flags, report artifacts).
+- `main.py`: Added `phase6-eval` command (live both-arms + `save_report`).
+- `progress.md`: Stages 6.2–6.4 `[x]`; dashboard → 90%, 3/4; milestone row added.
+
+#### 4. Edge Cases, Failures & Mitigations
+- *Chart helper used `means["baseline"]` (column lookup) instead of row lookup:*
+  - *Mitigation:* Switched to `means.loc["baseline", k]`; all 7 eval tests green.
+- *No fixtures (6.1) to benchmark against:*
+  - *Mitigation:* Harness operates on any persisted profile+JD; no synthetic fixtures invented.
+
+#### 5. Verification & Test Results
+- `pytest tests/test_evaluation.py tests/test_phase6_batch_cli.py -q`: **14 passed**.
+- `pytest -q` (full suite): **200 passed**, 0 failures.
+- `py_compile` clean on `main.py`, `src/evaluation.py`, `tests/test_evaluation.py`.
+
+#### 6. Next Steps
+- Build **Stage 6.1** fixture dataset (10–15 profile/JD pairs).
+- Run live `phase6-eval` / `phase6-batch` (needs LLM cost decision) and publish root `Evaluation_Report.md` from real data.
+
+---
+
+### [2026-09-29] Iteration Entry: Phase 6 CLI Output Decision (PDF Kept, No Text)
+- **Author:** Agent & Human Collaborative
+- **Status:** Completed
+
+#### 1. Objective & Scope
+Lock the `phase6-batch` output contract per user direction: keep PDF outputs, no tailored-text files. Revert the interim text-only draft (`.md` saves, `text_root/`, `resume_text_path`) back to the PDF pipeline so the CLI designs the whole pipeline end-to-end with PDFs.
+
+#### 2. Key Decisions & Technical Reasoning
+- **Decision:** `phase6-batch` outputs `run_root/pdf/*.pdf` + `run_root/reports/` only; `RunLog.resume_pdf_path`/`cover_pdf_path` populated, no text paths.
+  - **Reasoning:** User explicitly chose "keep the pdf no text". PDFs are the Phase 7-facing contract and the existing `RunLog` schema already carries PDF paths (nullable but populated in practice).
+  - **Alternatives Considered & Rejected:** Text-only `.md` outputs (implemented as a draft per earlier Q&A, then reverted — avoids a second output contract and keeps verification on the shipped artifact).
+
+#### 3. Code & Configuration Changes
+- `main.py`: Restored `pdf` stage (`generate_resume_pdf`/`generate_cover_letter_pdf`, `resume_pdf_ms`/`cover_pdf_ms` timings), `pdf_failed` bottleneck path (`pdf_generation`/`pdf_generation_slow`), PDF report outputs; removed `text_root`/`save_text` draft.
+- `progress.md`: Dashboard → Phase 6 🔄 In Progress / 87%; Stages 6.2 + 6.3 marked `[/]` (CLI foundation), 6.1 + 6.4 still `[ ]`; added decision milestone row.
+- `Journey.md`: This entry.
+
+#### 4. Edge Cases, Failures & Mitigations
+- *Interim text-only edit broke the `pdf_failed` test contract (`test_diagnose_pdf_generation_failure_priority`):*
+  - *Mitigation:* Restored `pdf_failed` param and PDF bottleneck branches; all 7 CLI helper tests green again.
+
+#### 5. Verification & Test Results
+- `python -m py_compile main.py`: clean.
+- `pytest tests/test_phase6_batch_cli.py -q`: **7 passed**.
+- `pytest -q` (full suite): **193 passed**, 0 failures.
+
+#### 6. Next Steps
+- Proceed with **Phase 6 — Stage 6.1** fixture dataset (10–15 profile/JD pairs).
+- Then formalize Stage 6.2 four-metric definitions and Stage 6.3 baseline arm before Stage 6.4 `Evaluation_Report.md`.
+
+---
+
+### [2026-09-29] Iteration Entry: Phase 6 CLI Batch Pipeline (Folder JD PDFs)
+- **Author:** Agent
+- **Status:** Completed
+
+#### 1. Objective & Scope
+Start Phase 6 execution from the CLI by adding a real batch pipeline that accepts a folder containing one or many JD PDFs, runs the full generation flow against an existing profile, and emits per-run bottleneck diagnostics and reports. Explicitly avoid synthetic/dummy profile creation by requiring an existing profile id and enforcing a minimum profile fact threshold.
+
+#### 2. Key Decisions & Technical Reasoning
+- **Decision:** Add a new command (`phase6-batch`) instead of overloading single-run `tailor`.
+  - **Reasoning:** Keeps backward compatibility for existing single-run usage while introducing a benchmark-style path with its own controls (batch sizing, sleep policies, report outputs).
+  - **Alternatives Considered & Rejected:** Replacing `tailor` directly (too risky for existing workflows and manual use cases).
+- **Decision:** Wire the command to full pipeline modules: `persist_jd` → `tailor_resume_with_allocation` → `extract_claims` + `verify_claims` + `sanitize_text` → `build_feedback` → PDF generation.
+  - **Reasoning:** Phase 6 needs instrumentation of allocation/verification quality, not prompt-only output.
+- **Decision:** Add deterministic bottleneck categorization (`profile_facts_low`, `scoring_alignment`, `verification_risk`, `pdf_generation`, plus latency classes) and persist this in run feedback/report artifacts.
+  - **Reasoning:** User asked for clear root-cause diagnosis per run, not just pass/fail.
+- **Decision:** Implement batch + linear sleep controls (`--batch-size`, `--linear-sleep-base`, `--linear-sleep-step`, `--batch-sleep`).
+  - **Reasoning:** Gives explicit throttle knobs for provider limits/cost pacing while preserving sequential determinism.
+
+#### 3. Code & Configuration Changes
+- `main.py`: Added `phase6-batch` command, helper diagnostics/report writers, profile validation gate, and RunLog/Claim persistence for each run.
+- `tests/test_phase6_batch_cli.py`: Added helper tests for PDF discovery, linear sleep calculation, and bottleneck classification priority.
+- `progress.md`: Added milestone entry for this Phase 6 CLI pipeline implementation.
+
+#### 4. Edge Cases, Failures & Mitigations
+- *Accidental patch markers in rewritten file (`+` at line starts):*
+  - *Mitigation:* stripped markers and revalidated syntax/tests.
+- *ORM typing ambiguity for run ids in static analysis:*
+  - *Mitigation:* resolved ids via `to_dict()` payload before passing to `record_claims`.
+- *Low-signal or non-JD PDFs could produce junk runs:*
+  - *Mitigation:* enforce minimum extracted JD text length and hard-stop sparse profile usage via `--min-profile-facts`.
+
+#### 5. Verification & Test Results
+- `python -m py_compile main.py tests/test_phase6_batch_cli.py`: clean.
+- `pytest tests/test_phase6_batch_cli.py -q`: **7 passed**.
+- Editor diagnostics: no errors in `main.py` and new test module.
+
+#### 6. Next Steps
+- Proceed with **Phase 6 — Stage 6.1** fixture dataset curation using real user-supplied profile/JD PDFs.
+- Use `phase6-batch` runs to collect Stage 6.2 metrics and identify dominant bottleneck classes before Stage 6.3 comparative benchmark.
+
+---
+
+### [2026-09-29] Iteration Entry: Light ATS-Clean UI/UX Redesign + Privacy Policy Refresh
+- **Author:** Agent
+- **Status:** Completed
+
+#### 1. Objective & Scope
+Full UI/UX pass over the 3-view SPA (`docs/index.html`) in a user-chosen **Light ATS-clean** direction, plus a rewrite of the stale `docs/privacy.html`. Audit found: flat action hierarchy (5 equal composer buttons), the Verified/Inferred/Unsupported differentiator invisible in the UI, facts as one unfilterable list with delete-only curation, no ATS grade/checklist, error-banner-only feedback, and accessibility gaps (low-contrast dim text, icon-only deletes, no labels/focus rings/modals semantics).
+
+#### 2. Key Decisions & Technical Reasoning
+- **Decision:** Keep the single-file SPA; restyle to light tokens (`--bg #f4f6f9`, ink `#16202e`, accent `#1a56db`, ok/warn/err triple) with Fraunces + Inter, instead of splitting into multiple pages.
+  - **Reasoning:** `app.py` serves one template string with `__ANTHROPIC_KEY__` placeholder replacement; GitHub Pages needs a zero-build artifact (repo forbids Node); `test_pipeline_api.py` pins `/` serving the whole UI. Multi-page was explicitly evaluated and rejected for now — hash routing later if deep-linking is wanted.
+  - **Alternatives Considered & Rejected:** Multi-page split (duplicates placeholder logic, breaks served-UI test, adds reload state loss); dark-theme evolution (user chose light ATS-clean).
+- **Decision:** One primary action per surface — `▶ Run analysis` becomes `.btn-primary`, the rest secondary; ATS scorecard (A–D grade + avg coverage + per-section ✓ matched / ✕ missing chips) rendered inside analysis bubbles.
+  - **Reasoning:** Scorecard reuses existing `feedback.sections` JSON — zero backend change for a Phase 7.1-shaped ATS checklist preview.
+- **Decision:** Facts gain section filter chips with counts, inline edit/save/cancel, and ☆→★ mandatory toggle (not just ★ display + delete).
+  - **Reasoning:** Mandatory pinning is the knapsack's most user-visible guarantee; making it toggleable in-place closes the curate→allocate→verify loop without leaving the view.
+- **Decision:** Privacy policy rewritten to actual data flows: local SQLite/`outputs/`/`.env` table, Claude/Gemini-only providers, Brave Search optional context, no Notion/mobile/ads/OpenAI.
+  - **Reasoning:** Old page predated the Stage 0.2 Notion prune and described builds that don't exist; inaccurate privacy text is worse than none.
+
+#### 3. Code & Configuration Changes
+- `docs/index.html`: Rebuilt (light design system, how-it-works strip, verification legend, stepper descriptions, labeled inputs, focus-visible rings, `role=dialog` modals with Esc close, `/` focuses chat search, toasts, labeled 5-step tailor progress, allocation inspector with utility + char-budget, scorecard bubbles, thread gap/✓ flags, keyboard-operable cards, `prefers-reduced-motion`).
+- `docs/privacy.html`: Rebranded to KnapResume, light theme, accurate local-vs-sent data map, effective date 2026-09-29.
+- `progress.md`: Logged milestones (phase boxes untouched).
+- No backend changes; all API wiring and test-pin strings preserved (`Knapsack resume`, `/api/runs`, `/api/allocate`, `attach-veil`/`attach-jd-file`/`attach-jd-existing`, no `prompt(` substring, no `Notion`, server key placeholders).
+
+#### 4. Edge Cases, Failures & Mitigations
+- *Served-UI test bans the `prompt(` substring (not just the call):* any comment or copy containing it fails the suite.
+  - *Mitigation:* Verified `prompt(` absent via byte check before running tests; used `confirm()` only where pre-existing.
+- *`python -m py_compile src/*.py` fails on Windows (glob not expanded by the shell):*
+  - *Mitigation:* Compiled `app.py`/`main.py` directly plus per-file loop over `src/*.py` — all clean.
+
+#### 5. Verification & Test Results
+- Byte-check pins: `prompt(` absent, `Notion` absent, all required markers present.
+- `python -m pytest tests/test_pipeline_api.py tests/test_chats.py tests/test_tailor_runs.py -q`: **19 passed**.
+- `python -m pytest -q` (full suite): **186 passed**, 0 failures.
+- `py_compile` clean on `app.py`, `main.py`, all `src/*.py`.
+
+#### 6. Next Steps
+- Proceed to **Phase 6 — Stage 6.1**: fixture dataset (10–15 profile/JD pairs); Stage 6.3 live-LLM benchmark still needs a user cost decision.
+- Optional UI follow-ups: hash routing (`#/profiles`, `#/facts`, `#/chats/<id>`) for deep-linking; v2.6 template switcher + 5-dimension ATS scorecard engine.
+
+---
+
 ### [2026-09-28] Iteration Entry: Version 2 Architecture & Comprehensive Build Plan
 - **Author:** Agent & Human Collaborative
 - **Status:** Completed (Design Finalized & Committed to Roadmap)

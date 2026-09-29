@@ -8,10 +8,10 @@
 
 ## 📊 Project Status Dashboard
 
-- **Current Phase:** Phase 6 — Evaluation Harness & Benchmarking
-- **Current Stage:** Stage 6.1 — Fixture Dataset Construction
-- **Overall Completion:** 85%
-- **Status:** 🟢 Ready for Execution
+- **Current Phase:** Phase 7 — Export, Integration & Final Polish
+- **Current Stage:** Phase 7 complete (only Phase 6.1 fixtures + live report remain)
+- **Overall Completion:** 95%
+- **Status:** 🟢 Phase 7 complete
 
 | Phase | Description | Target Timeline | Status | Stages Total | Stages Completed |
 |---|---|---|---|---|---|
@@ -21,8 +21,8 @@
 | **Phase 3** | Scoring & Knapsack Allocation | 4 days | ✅ Completed | 4 | 4 |
 | **Phase 4** | Verification Layer (3-State) | 5 days | ✅ Completed | 5 | 5 |
 | **Phase 5** | Weakest-Section Feedback Loop | 2 days | ✅ Completed | 3 | 3 |
-| **Phase 6** | Evaluation Harness & Benchmarking | 4 days | ⏳ Pending | 4 | 0 |
-| **Phase 7** | Export, Integration & Final Polish | 3 days | ⏳ Pending | 3 | 0 |
+| **Phase 6** | Evaluation Harness & Benchmarking | 4 days | 🔄 In Progress (6.2–6.4 done, 6.1 pending) | 4 | 3 |
+| **Phase 7** | Export, Integration & Final Polish | 3 days | ✅ Completed | 3 | 3 |
 
 ---
 
@@ -182,30 +182,32 @@ Legend:
 
 ### Phase 6: Evaluation Harness & Benchmarking (Estimated: 4 Days)
 *Objective: Rigorously benchmark KnapResume against the baseline prompt-only approach on realistic test fixtures.*
+*CLI foundation (DONE 2026-09-29): `main.py phase6-batch` runs the whole pipeline in CLI only — folder JD PDFs in → allocation → LLM tailor → claim verify/sanitize → feedback → cover letter → PDF export (+ `RunLog`/`Claim` persist, per-run + summary bottleneck reports). PDF outputs KEPT, no text-file outputs (user decision).*
 
 - [ ] **Stage 6.1 — Fixture Dataset Construction**
   - Create 10–15 realistic test pairs of user profiles and job descriptions across various CSE/SE specializations.
-- [ ] **Stage 6.2 — Metric Collection Pipeline**
+- [x] **Stage 6.2 — Metric Collection Pipeline (`src/evaluation.py`)**
   - Collect metrics: Keyword match rate, ATS density, fabrication rate (% unsupported), knapsack capacity utilization.
-- [ ] **Stage 6.3 — Comparative Benchmark Execution**
+  - DONE: four deterministic functions (`compute_keyword_match_rate` = matched-anywhere required union, `compute_ats_density` = mentions/100w saturated at 10, `compute_fabrication_rate` = unsupported/total, `compute_knapsack_utilization` = weight/capacity) + `compute_metrics()` per arm. Offline-tested in `tests/test_evaluation.py`.
+- [x] **Stage 6.3 — Comparative Benchmark Execution (`evaluate_texts` + `evaluate_profile_jd` + `phase6-eval` CLI)**
   - Execute comparative runs: *Baseline (rotsl prompt-only)* vs. *KnapResume (Knapsack + Verifier)*.
-- [ ] **Stage 6.4 — Results Visualizations & Documentation**
+  - DONE: pure `evaluate_texts()` (baseline utilization = 0, no allocator) + DB/LLM `evaluate_profile_jd()` with injectable tailor/verify fns (tests stay offline) + `main.py phase6-eval` (live LLM both arms). Live benchmark run pending API-cost decision.
+- [x] **Stage 6.4 — Results Visualizations & Documentation (`save_report`)**
   - Generate comparison tables and charts (via `pandas` and `matplotlib`).
-  - Publish benchmark findings in `Evaluation_Report.md`.
+  - DONE: `save_report()` emits `report.md` + `results.csv` + `chart.png` (grouped baseline-vs-knap bars) + `summary.json`; covered by artifact-existence test. Root `Evaluation_Report.md` from live data pending the 6.3 live run.
 
 ---
 
 ### Phase 7: Export, Integration & Final Polish (Estimated: 3 Days)
 *Objective: Complete end-to-end integration, ATS keyword checklist, ReportLab export formatting, and final documentation.*
 
-- [ ] **Stage 7.1 — ATS Keyword Checklist & UI Integration**
-  - Add lightweight ATS checklist data to the API response and web UI (`docs/index.html`).
-- [ ] **Stage 7.2 — PDF Generator Alignment & Final Polish**
-  - Verify ReportLab flowable styling for verified tailored resumes and cover letters in `src/pdf_generator.py`.
-  - Finalize SQLite run persistence integration (`run_logs` and `claims` tables).
-- [ ] **Stage 7.3 — Full End-to-End Smoke Test & Documentation**
-  - Run comprehensive E2E smoke tests from profile ingestion $\to$ JD parsing $\to$ Knapsack allocation $\to$ LLM generation $\to$ Verification $\to$ PDF export.
-  - Finalize `README.md` and user guide.
+- [x] **Stage 7.1 — ATS Keyword Checklist & UI Integration**
+  - Lightweight checklist (`grade` A–D, `coverage`, `matched`/`missing`, per-skill `items`) built in `src/feedback.py:build_ats_checklist`, re-exported via `src/evaluation.py`; returned by `POST /api/runs`, `POST /api/runs/<id>/rerun`, `GET /api/runs/<id>`; persisted on `RunLog.feedback`; rendered in `docs/index.html:scorecardHTML` (checklist-first, section bars fallback; also fixed a latent `(count).map` crash in the old matched-chips path). Tests: 3 new in `tests/test_feedback.py`.
+- [x] **Stage 7.2 — PDF Generator Alignment & Final Polish**
+  - Verified, no code changes: ReportLab flowables (`_P` escape choke point, ASCII normalization, header guards, KeepTogether) covered by `tests/test_pdf_generator.py` (8); SQLite run persistence (`run_logs` + `claims`, restart-safe downloads) covered by `tests/test_tailor_runs.py` (4); served UI pins in `tests/test_pipeline_api.py`. Re-ran 27/27 green.
+- [x] **Stage 7.3 — Full End-to-End Smoke Test & Documentation**
+  - New offline `tests/test_e2e_smoke.py`: profile → facts → JD → allocation (budget respected) → feedback + checklist → cited-claims extract/verify/sanitize → PDF export → `RunLog` + `Claim` persistence. `README.md` refreshed (ATS checklist, eval outputs, `phase6-batch`/`phase6-eval` commands, status).
+  - Phase 7 gate: full suite 204 passed, `py_compile` clean.
 
 ---
 
@@ -326,3 +328,9 @@ Legend:
 | **2026-09-24** | Attach-JD file drop | Replaced the `prompt()`-based chat JD attach with a 3-tab modal (paste text / drop PDF-DOCX-TXT-MD file / pick existing structured job); file path reuses server-side `extract_text` via `POST /api/jds`. Served-page test now pins the modal + no-`prompt()` rule. Full suite: 178 passed. |
 | **2026-09-24** | PDF formatting overhaul | Fixed `src/pdf_generator.py`: XML-escape choke point (`_P()` — `<products>`/`R&D` no longer eaten or mangled), Unicode→ASCII normalization (`•/·/–/—` rendered as `(cid:127)`/`?` in Helvetica — now `-`), header guards (date lines / `A \| B` caps lines no longer misread as sections), fence stripping, identifier-safe markdown (no more single-`*`/`_` stripping), KeepTogether section headers, pre-build flowable count. Added `tests/test_pdf_generator.py` (8 round-trip tests). Full suite: 186 passed. |
 | **2026-09-24** | Repo tidy: docs/design + samples | Sorted the root: 4 design docs → `docs/design/` (relative cross-links intact), 3 sample PDFs → `samples/`; kept `instruct.md` at root (code dependency of `tailor.py`), agent ops files + entry points untouched. Refreshed the `Agent.md` file map (incl. new modules/tests). Full suite: 186 passed. |
+| **2026-09-29** | UI/UX redesign: Light ATS-clean SPA | Rebuilt `docs/index.html` (light design system, one primary action per surface, ATS scorecard A–D with matched/missing chips in analysis bubbles, fact filter chips + inline edit + ☆/★ mandatory toggle, toasts, labeled 5-step tailor progress, allocation inspector with utility + char-budget, thread gap/✓ flags, labeled inputs, focus rings, dialog semantics, Esc/`/` shortcuts, reduced-motion support). Single-file kept (multi-page evaluated and rejected: Flask placeholder serving, zero-build Pages demo, served-UI test pins). No backend changes. Full suite: 186 passed. |
+| **2026-09-29** | Privacy policy refresh | Rewrote `docs/privacy.html` (KnapResume branding, light theme, accurate local-vs-sent data map: SQLite/`outputs/`/`.env` stays local; Claude/Gemini + optional Brave Search on user trigger; removed Notion/mobile/ads/OpenAI fiction). Effective date 2026-09-29. Pipeline UI tests: 7 passed. |
+| **2026-09-29** | Phase 6 CLI batch pipeline (folder JD PDFs) | Added `main.py` command `phase6-batch` to process one/many JD PDFs from a folder against an existing profile id (no dummy profile generation), run full allocation→tailor→claim verify→sanitize→feedback→PDF flow, persist `RunLog` + `Claim` rows, classify bottlenecks (`profile_facts_low`, `scoring_alignment`, `verification_risk`, `pdf_generation`, latency classes), and emit per-run + summary reports (`summary.md`/`summary.json`) with batch/linear sleeps. Added `tests/test_phase6_batch_cli.py` (7 tests), all passing. |
+| **2026-09-29** | Phase 6 CLI decision: PDF kept, no text | User decision locked: `phase6-batch` keeps PDF outputs (`run_root/pdf/*.pdf`, `resume_pdf_path`/`cover_pdf_path` on `RunLog`), no tailored-text (`.md`/`.txt`) outputs. Reverted interim text-only draft back to PDF stage (`pdf` + `pdf_failed` bottleneck paths). Stages 6.2/6.3 marked `[/]` In Progress (CLI foundation), 6.1/6.4 still `[ ]`. Full suite: 193 passed. |
+| **2026-09-29** | Stages 6.2–6.4 code-complete | Built `src/evaluation.py` (4 deterministic metrics, `evaluate_texts`/`evaluate_profile_jd` with injectable LLM/verify fns, `save_report` with pandas CSV + matplotlib chart) + `main.py phase6-eval` CLI (live baseline-vs-knap on one profile+JD). Added `tests/test_evaluation.py` (7 tests, offline). Full suite: 200 passed. Remaining: 6.1 fixtures + live benchmark run + root `Evaluation_Report.md` from live data. |
+| **2026-09-29** | Phase 7 complete (7.1 + 7.2 + 7.3) | 7.1 ATS checklist (`build_ats_checklist` in `feedback.py`, API + stored + UI scorecard, 3 tests). 7.2 PDF/persistence verified (27/27, no code changes). 7.3 offline E2E smoke (`tests/test_e2e_smoke.py`) + README refresh. Phase 7 gate: 204 passed, `py_compile` clean. |

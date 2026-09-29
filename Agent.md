@@ -47,6 +47,7 @@ proj/
 │   ├── claims.py              # (Phase 4) Claim extraction & [F<id>] citation parser
 │   ├── verifier.py            # (Phase 4) Hybrid cosine pre-screen + MiniLM2 NLI cross-encoder verifier
 │   └── feedback.py            # (Phase 5) Weakest-section gap analysis and reasoning engine
+│   └── evaluation.py          # (Phase 6) Metric pipeline + baseline-vs-knap benchmark + report/charts
 │
 ├── tests/                     # Automated Pytest Suite (in-memory SQLite `in_memory_db`)
 │   ├── __init__.py
@@ -66,6 +67,9 @@ proj/
 │   ├── test_chats.py          # Chat threads (1:N profile→JD)
 │   ├── test_tailor_runs.py    # Tailor→chat RunLog persistence + downloads
 │   └── test_pdf_generator.py  # PDF round-trip formatting guards
+│   └── test_phase6_batch_cli.py  # Phase 6 batch helpers (JD discovery, bottleneck)
+│   └── test_evaluation.py     # Phase 6 metrics + benchmark + report artifacts
+│   └── test_e2e_smoke.py      # Phase 7 offline full-path smoke (alloc→verify→PDF→persist)
 │
 ├── alembic/                   # Database Migrations
 │   ├── env.py                 # Alembic environment configured for src.database

@@ -186,3 +186,41 @@ def test_runs_validation_errors(api_client, k8s_setup):
     ).status_code == 404
     assert api_client.post("/api/runs/99999/rerun").status_code == 404
     assert api_client.get("/api/runs/99999").status_code == 404
+
+
+# ── Stage 7.1: ATS checklist ─────────────────────────────────────────────────
+
+def test_build_ats_checklist_grades():
+    from src.feedback import build_ats_checklist
+    fb = {"sections": {"experience": {"missing": ["Docker"]}}}
+    reqs = [{"skill": "Python", "category": "required"},
+            {"skill": "Docker", "category": "required"},
+            {"skill": "GraphQL", "category": "nice_to_have"}]
+    cl = build_ats_checklist(fb, reqs)
+    assert cl["coverage"] == 0.5
+    assert cl["grade"] == "C"
+    assert cl["matched"] == ["Python"]
+    assert cl["missing"] == ["Docker"]
+    assert len(cl["items"]) == 3
+
+
+def test_checklist_stored_on_run(in_memory_db, k8s_setup):
+    run = create_feedback_run(k8s_setup["profile_id"], k8s_setup["jd_id"],
+                              session=in_memory_db)
+    from src.models import RunLog
+    row = in_memory_db.query(RunLog).filter(
+        RunLog.id == run["run_id"]).first()
+    cl = (row.feedback or {}).get("ats_checklist")
+    assert cl is not None
+    assert cl["grade"] in ("A", "B", "C", "D")
+    assert "Kubernetes" in cl["missing"]
+
+
+def test_runs_api_returns_checklist(api_client, k8s_setup):
+    pid, jd_id = k8s_setup["profile_id"], k8s_setup["jd_id"]
+    body = api_client.post(
+        "/api/runs", json={"profile_id": pid, "jd_id": jd_id}).get_json()
+    assert body["ats_checklist"]["grade"] in ("A", "B", "C", "D")
+    assert "Kubernetes" in body["ats_checklist"]["missing"]
+    stored = api_client.get(f"/api/runs/{body['run_id']}").get_json()
+    assert stored["ats_checklist"]["missing"] == body["ats_checklist"]["missing"]

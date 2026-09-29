@@ -64,8 +64,9 @@ The main API endpoints include:
 | Tailoring | `POST /api/tailor`, `GET /api/status/<job_id>`, PDF download endpoints |
 | Profiles and facts | `/api/profile`, `/api/profiles`, `/api/profile/<id>/facts`, `/api/profile/<id>/ingest` |
 | Job descriptions | `/api/jds` and `/api/jds/<id>` |
-| Allocation and feedback | `POST /api/allocate`, `/api/runs`, `/api/runs/<id>/rerun` |
+| Allocation and feedback | `POST /api/allocate`, `/api/runs`, `/api/runs/<id>/rerun` (responses include an `ats_checklist` with grade A–D plus matched/missing skills) |
 | Chat threads | `/api/profile/<id>/chats` and `/api/chats/<id>` |
+| Evaluation | `src/evaluation.py` metrics (keyword match, ATS density, fabrication rate, knapsack utilization) with `report.md` / `results.csv` / `chart.png` output |
 
 ## Run the CLI
 
@@ -74,6 +75,10 @@ python main.py --help
 python main.py tailor --resume my_resume.pdf --job-url https://jobs.example.com/role
 python main.py tailor --resume my_resume.docx --job-file job_description.pdf
 python main.py tailor
+# Phase 6 batch (folder of JD PDFs -> tailored PDFs + bottleneck reports):
+python main.py phase6-batch --profile-id 1 --jd-folder ./jds
+# Phase 6 eval (baseline prompt-only vs KnapResume on one profile+JD):
+python main.py phase6-eval --profile-id 1 --jd-id 1
 ```
 
 The CLI accepts resume files in `PDF`, `DOCX`, `TXT`, or `MD` format. Job descriptions can come from a file, URL, or pasted text. Use `--provider claude` or `--provider gemini` and `--model` to select the model.
@@ -113,6 +118,7 @@ Important files:
 - [`src/scoring.py`](src/scoring.py) and [`src/allocator.py`](src/allocator.py) - matching and content selection
 - [`src/verifier.py`](src/verifier.py) - claim verification and sanitization
 - [`src/feedback.py`](src/feedback.py) - gap analysis and rerun feedback
+- [`src/evaluation.py`](src/evaluation.py) - benchmark metrics and baseline-vs-KnapResume comparison
 - [`src/pdf_generator.py`](src/pdf_generator.py) - PDF export
 - [`instruct.md`](instruct.md) - local and CLI prompt instructions
 
@@ -124,7 +130,7 @@ The browser demo sends content directly from the browser to the selected provide
 
 ## Project status
 
-Phases 1-5 are implemented and covered by tests. Phase 6 is focused on fixture-based evaluation and benchmarking; Phase 7 covers final export integration and polish. See [`progress.md`](progress.md) for the detailed tracker and [`Journey.md`](Journey.md) for implementation decisions.
+Phases 1–5 are implemented and covered by tests. Phase 6 delivered the CLI batch pipeline, the four-metric evaluation harness with baseline-vs-KnapResume comparison, and pandas/matplotlib reporting (fixture dataset + live benchmark report still pending). Phase 7 delivered the ATS checklist API + UI scorecard, PDF/persistence verification, and an offline end-to-end smoke test. See [`progress.md`](progress.md) for the detailed tracker and [`Journey.md`](Journey.md) for implementation decisions.
 
 ## License
 

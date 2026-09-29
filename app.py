@@ -346,6 +346,7 @@ def _run_error(e: ValueError):
 @app.route("/api/runs", methods=["POST"])
 def api_create_run():
     from src import feedback as fb
+    from src.evaluation import get_ats_checklist
     data = request.get_json(silent=True) or {}
     if data.get("profile_id") is None or data.get("jd_id") is None:
         return jsonify({"error": "Both 'profile_id' and 'jd_id' are required."}), 400
@@ -353,8 +354,10 @@ def api_create_run():
         result = fb.create_feedback_run(
             int(data["profile_id"]), int(data["jd_id"]),
             capacities=data.get("capacities"))
+        checklist = get_ats_checklist(int(data["profile_id"]), int(data["jd_id"]))
         return jsonify({"run_id": result["run_id"],
                         "feedback": result["feedback"],
+                        "ats_checklist": checklist,
                         "role_type": result["role_type"],
                         "total_utility": result["total_utility"]}), 201
     except (ProfileNotFoundError, FactNotFoundError) as e:
@@ -366,12 +369,16 @@ def api_create_run():
 @app.route("/api/runs/<int:run_id>/rerun", methods=["POST"])
 def api_rerun(run_id):
     from src import feedback as fb
+    from src.evaluation import get_ats_checklist
     data = request.get_json(silent=True) or {}
     try:
         result = fb.rerun_feedback(run_id, capacities=data.get("capacities"))
+        checklist = get_ats_checklist(
+            result["feedback"].get("profile_id"), result["feedback"].get("jd_id"))
         return jsonify({"run_id": result["run_id"],
                         "prev_run_id": result["prev_run_id"],
                         "feedback": result["feedback"],
+                        "ats_checklist": checklist,
                         "diff": result["diff"]}), 201
     except ValueError as e:
         return _run_error(e)
@@ -385,7 +392,15 @@ def api_get_run(run_id):
         run = s.query(RunLog).filter(RunLog.id == run_id).first()
         if run is None:
             abort(404)
-        return jsonify(run.to_dict()), 200
+        payload = run.to_dict()
+        if run.profile_id is not None and run.jd_id is not None:
+            from src.evaluation import get_ats_checklist
+            try:
+                payload["ats_checklist"] = get_ats_checklist(
+                    run.profile_id, run.jd_id, session=s)
+            except ValueError:
+                pass
+        return jsonify(payload), 200
 
 # ── JD & Allocation API (pre-Phase-6 UI integration) ───────────────────────────
 def _public_fact(f):

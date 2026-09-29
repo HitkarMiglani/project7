@@ -3,144 +3,141 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Resume Tailor Privacy Policy</title>
+<title>KnapResume — Privacy Policy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0a0a0f;--surface:#111118;--border:#1e1e2e;--border-bright:#2e2e4e;--accent:#c8b4ff;--accent2:#7df9c0;--text:#e8e8f0;--text-dim:#9a9ab2;--text-muted:#5f5f7a;--radius:14px}
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --surface2:#eef2f7;
+  --border:#dfe5ee; --border-strong:#b9c4d6;
+  --ink:#16202e; --muted:#4d5e75; --faint:#7c8ca3;
+  --accent:#1a56db; --accent-soft:#e8effd;
+  --ok:#0e9f6e; --ok-soft:#e3f5ec;
+  --radius:10px; --shadow:0 1px 2px rgba(16,32,54,.06),0 4px 14px rgba(16,32,54,.06);
+}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;min-height:100vh;line-height:1.7}
-body::before{content:'';position:fixed;top:-30vh;left:-20vw;width:80vw;height:80vh;background:radial-gradient(ellipse,rgba(200,180,255,.06) 0%,transparent 70%);pointer-events:none;z-index:0}
-body::after{content:'';position:fixed;bottom:-20vh;right:-10vw;width:60vw;height:60vh;background:radial-gradient(ellipse,rgba(125,249,192,.04) 0%,transparent 70%);pointer-events:none;z-index:0}
-.wrap{position:relative;z-index:1;max-width:880px;margin:0 auto;padding:0 24px 72px}
-header{padding:56px 0 40px;border-bottom:1px solid var(--border);margin-bottom:36px}
-.logo-tag{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:10px}
-.logo-tag::before{content:'';display:inline-block;width:24px;height:1px;background:var(--accent)}
-h1{font-family:'Playfair Display',serif;font-size:clamp(34px,5vw,56px);font-weight:700;line-height:1.1;letter-spacing:-.02em}
+body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,-apple-system,sans-serif;font-size:15px;min-height:100vh;line-height:1.7}
+.wrap{max-width:880px;margin:0 auto;padding:0 24px 72px}
+header{padding:40px 0 24px;border-bottom:2px solid var(--ink);margin-bottom:22px}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(30px,4.6vw,46px);font-weight:700;line-height:1.1}
 h1 em{font-style:italic;color:var(--accent)}
-.subtitle{margin-top:14px;font-size:15px;color:var(--text-dim);max-width:640px}
-.meta{margin-top:18px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 28px 10px;margin-bottom:18px}
-h2{font-family:'Playfair Display',serif;font-size:28px;margin-bottom:18px}
-h3{font-size:15px;font-weight:500;color:var(--accent2);margin-bottom:10px}
-p{margin-bottom:16px;color:var(--text)}
-ul{margin:0 0 18px 20px;color:var(--text)}
-li{margin-bottom:10px}
-a{color:var(--accent);text-decoration:none}
+.subtitle{margin-top:10px;font-size:14.5px;color:var(--muted);max-width:640px}
+.meta{margin-top:14px;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px 24px 8px;margin-bottom:16px;box-shadow:var(--shadow)}
+h2{font-family:'Fraunces',Georgia,serif;font-size:24px;margin-bottom:14px}
+h3{font-size:13px;font-weight:600;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+p{margin-bottom:14px}
+ul{margin:0 0 16px 20px}
+li{margin-bottom:8px}
+a{color:var(--accent);text-decoration:none;font-weight:600}
 a:hover{text-decoration:underline}
-.notice{background:rgba(200,180,255,.07);border:1px solid rgba(200,180,255,.2);border-radius:12px;padding:16px 18px;margin-bottom:22px;color:var(--text-dim)}
-footer{margin-top:52px;padding-top:24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.fl,.fr{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);letter-spacing:.05em}
-@media(max-width:640px){.card{padding:22px 20px 6px}footer{align-items:flex-start;flex-direction:column}}
+.notice{background:var(--accent-soft);border:1.5px solid var(--accent);border-radius:8px;padding:13px 16px;margin-bottom:18px;font-size:13.5px}
+.notice.ok{background:var(--ok-soft);border-color:var(--ok)}
+footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--border-strong);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.fl,.fr{font-size:11px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;margin:0 0 16px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border:1px solid var(--border)}
+th{background:var(--surface2);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+@media(max-width:640px){.card{padding:20px 18px 6px}footer{align-items:flex-start;flex-direction:column}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="logo-tag">Privacy Policy</div>
-    <h1>Resume Tailor<br><em>Privacy Policy</em></h1>
-    <p class="subtitle">This policy covers the Resume Tailor web app, the static GitHub Pages version, and any Android or iOS app released under the same product name.</p>
-    <div class="meta">Effective date: March 20, 2026</div>
+    <div class="eyebrow">KnapResume · Privacy Policy</div>
+    <h1>Your career data<br><em>stays yours</em></h1>
+    <p class="subtitle">This policy covers the KnapResume local web app (<code>python app.py</code>), the static browser demo, and the CLI (<code>python main.py</code>).</p>
+    <div class="meta">Effective date: September 29, 2026</div>
   </header>
+
+  <div class="notice"><strong>Short version:</strong> KnapResume is local-first. Your profile, facts, and generated PDFs live in a SQLite file and an <code>outputs/</code> folder on your own machine. Content leaves your machine only when <em>you</em> trigger generation — sent to the AI provider and company-research service <em>you</em> configured.</div>
 
   <section class="card">
     <h2>Overview</h2>
-    <p>Resume Tailor ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and disclose information when you use Resume Tailor, including the web app, the static GitHub Pages version, and any Android or iOS app released under the same product name.</p>
-    <p>Resume Tailor is designed as a local workflow product. We aim to keep your information on your device unless a feature requires data to be sent to a third-party service that you choose to use.</p>
+    <p>KnapResume ("we," "our," or "us") runs on your computer. There is no KnapResume cloud, no user accounts, and no analytics pipeline phoning home. This policy explains what is stored where, and what leaves your device when you use each feature.</p>
   </section>
 
   <section class="card">
-    <h2>What We Collect</h2>
-    <h3>Personal data</h3>
-    <p>We do not intentionally collect or store your personal information, such as your name or email address, on our own servers simply for using the app.</p>
-
-    <h3>Resume and job data</h3>
-    <ul>
-      <li>Resume text and files you upload or paste.</li>
-      <li>Job descriptions, job posting text, or job files you upload or paste.</li>
-    </ul>
-    <p>In local workflow use, these materials are processed on your device and, when needed for generation, sent directly to the AI provider you selected. We do not claim ownership of that content.</p>
-
-    <h3>API keys</h3>
-    <p>API keys for supported AI providers are intended to stay on your device. In Android builds, they may be stored using Android secure local storage such as EncryptedSharedPreferences. They are not meant to be transmitted to our own servers.</p>
-
-    <h3>Optional integrations and technical data</h3>
-    <ul>
-      <li>Basic request and device data handled by the platforms and service providers you use, such as browser, operating system, and network metadata.</li>
-      <li>If you enable Notion features in supported builds, the content needed to log applications and generated outputs may be sent to your Notion workspace.</li>
-      <li>If ads are enabled in a mobile build, advertising providers may collect data such as device or advertising identifiers under their own policies.</li>
-    </ul>
+    <h2>What stays on your machine</h2>
+    <table>
+      <tr><th>Data</th><th>Where</th><th>Notes</th></tr>
+      <tr><td>Profile &amp; resume facts (incl. semantic embeddings)</td><td><code>knapresume.db</code> (SQLite, local file)</td><td>Survives restarts; delete the file to erase everything</td></tr>
+      <tr><td>Job descriptions &amp; extracted requirements</td><td><code>knapresume.db</code></td><td>Same file, same control</td></tr>
+      <tr><td>Run history, gap feedback &amp; verification claims</td><td><code>knapresume.db</code> (<code>run_logs</code>, <code>claims</code>)</td><td>Your application timeline</td></tr>
+      <tr><td>Tailored resume &amp; cover-letter PDFs</td><td><code>outputs/</code> folder</td><td>Plain files — move, share, or delete freely</td></tr>
+      <tr><td>API keys</td><td><code>.env</code> file and/or browser field</td><td>Never committed to git; never written to logs</td></tr>
+      <tr><td>App logs</td><td>Console, plus <code>KNAP_LOG_FILE</code> if you set it</td><td>Keys are never logged</td></tr>
+    </table>
+    <p>Deleting <code>knapresume.db</code> and <code>outputs/</code> removes all app-held data. Uninstalling means deleting the project folder — nothing remains on any server, because there isn't one.</p>
   </section>
 
   <section class="card">
-    <h2>How We Use Information</h2>
+    <h2>What leaves your machine (only when you ask)</h2>
+    <h3>AI providers — Claude / Gemini</h3>
+    <p>When you click <strong>Tailor PDFs</strong> (or run <code>main.py tailor</code>), your knapsack-selected resume facts and the target job description are sent to the provider you chose — Anthropic (Claude) or Google (Gemini) — using the API key from your <code>.env</code> or the key field. Their handling of that content is governed by their own policies:</p>
     <ul>
-      <li>To read your resume and the target job description.</li>
-      <li>To generate a tailored resume and cover letter.</li>
-      <li>To create downloadable PDFs.</li>
-      <li>To save application history or generated output to Notion when you enable that feature.</li>
-      <li>To operate, maintain, and secure the app.</li>
+      <li><a href="https://www.anthropic.com/legal/privacy">Anthropic Privacy Policy</a></li>
+      <li><a href="https://policies.google.com/privacy">Google Privacy Policy</a> (Gemini API)</li>
     </ul>
+    <p>Only the allocated subset of facts is sent — not your entire database. Review your provider's data-handling terms before sending sensitive material.</p>
+
+    <h3>Company research — Brave Search (optional)</h3>
+    <p>Unless you pass <code>--skip-web</code>, tailoring fetches public company context via the Brave Search API using your <code>BRAVE_API_KEY</code>. Only job-description text and the posting URL are used as the query — your resume is never sent there.</p>
+
+    <h3>Browser demo build</h3>
+    <p>The static demo page sends content directly from your browser to the provider you select. There is no KnapResume backend in that build at all.</p>
   </section>
 
   <section class="card">
-    <h2>Third-Party Services</h2>
-    <p>Resume Tailor does not sell your personal information.</p>
+    <h2>What we do NOT do</h2>
     <ul>
-      <li><strong>AI providers:</strong> When you generate a tailored resume or cover letter, your data may be sent to the AI provider you configured, such as Google, OpenAI, or Anthropic. Their handling of that data is governed by their own privacy policies and terms.</li>
-      <li><strong>Notion:</strong> If you turn on Notion logging, the app sends the relevant job and output data to your Notion workspace.</li>
-      <li><strong>Google AdMob:</strong> If a mobile build displays ads, Google AdMob may collect and use information such as your device's advertising ID to show ads, including personalized ads where applicable. See <a href="https://policies.google.com/privacy">Google's Privacy Policy</a>.</li>
-      <li><strong>External links:</strong> The app may link to job boards, GitHub, or other external sites. We are not responsible for the privacy practices of those third-party websites.</li>
-      <li><strong>Platform providers:</strong> Hosting, app-store, browser, operating-system, and infrastructure providers may process technical data needed to deliver the service.</li>
+      <li>No accounts, no tracking cookies, no analytics beacons.</li>
+      <li>No sale of personal information — there is nothing to sell.</li>
+      <li>No third-party workspaces or ad networks. (Earlier experimental integrations were removed; run history lives only in your local <code>run_logs</code> table.)</li>
+      <li>No mobile apps, no ads, no advertising identifiers.</li>
     </ul>
-    <p>Your use of third-party providers is also governed by their own terms and privacy policies.</p>
   </section>
 
   <section class="card">
     <h2>Permissions</h2>
     <ul>
-      <li><strong>Internet access:</strong> Used to communicate with AI providers, optional integrations, and advertising services if those are enabled.</li>
-      <li><strong>Storage or document access:</strong> Used so you can pick resume files, job descriptions, or export generated files on your device.</li>
+      <li><strong>Internet access:</strong> used to reach your AI provider and (optionally) Brave Search. Everything else works offline once models are cached.</li>
+      <li><strong>File access:</strong> used so you can pick resume / job-description files and export PDFs on your device.</li>
     </ul>
   </section>
 
   <section class="card">
-    <h2>Where Processing Happens</h2>
-    <p>The GitHub Pages build runs in the browser. In that version, your content and API key are sent directly from your device to the provider you choose. The project does not run a separate backend for that static page.</p>
-    <p>Local, Android, and iOS builds may process files on-device and may also transmit content to third-party services that you enable, including AI providers and Notion.</p>
-  </section>
-
-  <section class="card">
-    <h2>Data Retention</h2>
+    <h2>Data retention</h2>
     <ul>
-      <li>The static GitHub Pages build is designed so your content is processed in your browser and is not stored by a project-operated server.</li>
-      <li>Local builds store generated files on your device in the locations used by the app.</li>
-      <li>If you send data to an AI provider or to Notion, retention is subject to that provider's policies and your account settings with that provider.</li>
+      <li>Local app: data persists until <em>you</em> delete it (profiles can be deleted in the UI; the DB file can be removed outright).</li>
+      <li>Static demo: nothing is stored by any project-operated server — content exists in your browser session only.</li>
+      <li>Anything sent to Anthropic, Google, or Brave is retained under <em>their</em> policies and your settings with them.</li>
     </ul>
   </section>
 
   <section class="card">
-    <h2>Data Security</h2>
-    <p>We use reasonable security measures for the product and support local storage approaches intended to protect sensitive data, including encrypted storage for API keys where supported on the device platform. Still, no method of electronic transmission or storage is completely secure.</p>
+    <h2>Data security</h2>
+    <p>Local-first is itself the main safeguard: your data never traverses infrastructure we operate. API keys live in your local <code>.env</code> (git-ignored), are injected server-side at page render, and are explicitly excluded from logs. Still, no method of transmission or storage is perfectly secure — treat API keys like passwords and rotate any key you suspect is exposed.</p>
   </section>
 
   <section class="card">
     <h2>Children</h2>
-    <p>Resume Tailor is not directed to children under 13. We do not knowingly collect personal information from children. If you believe a child has provided information through the app, contact us and we will review the request.</p>
+    <p>KnapResume is not directed to children under 13. It processes whatever resume content the user provides locally; if you believe a child has used the app in a way that concerns you, contact us below.</p>
   </section>
 
   <section class="card">
-    <h2>Changes to This Policy</h2>
-    <p>We may update this Privacy Policy from time to time when the product changes, when a new platform build is released, or when store and legal requirements change. The effective date at the top of this page shows the current version. You should review this page periodically for updates.</p>
+    <h2>Changes to this policy</h2>
+    <p>We may update this page as the product changes (e.g. the LaTeX template engine, ATS evaluator, or export formats on the v2 roadmap). The effective date at the top shows the current version.</p>
   </section>
 
   <section class="card">
     <h2>Contact</h2>
-    <p>For privacy questions or requests, contact: <a href="mailto:sweeper.wailers.0s@icloud.com">sweeper.wailers.0s@icloud.com</a></p>
+    <p>For privacy questions or deletion help, contact: <a href="mailto:sweeper.wailers.0s@icloud.com">sweeper.wailers.0s@icloud.com</a></p>
   </section>
 
   <footer>
-    <div class="fl">RESUME TAILOR</div>
+    <div class="fl">KNAPRESUME · LOCAL-FIRST · 1 PROFILE : N JD CHATS</div>
     <div class="fr"><a href="./index.html">Back to app</a></div>
   </footer>
 </div>

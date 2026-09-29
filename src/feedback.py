@@ -145,6 +145,54 @@ def build_feedback(
         return _build(s)
 
 
+def ats_grade(coverage: float) -> str:
+    """Letter grade from required-skill coverage: A >= .8, B >= .6, C >= .4."""
+    if coverage >= 0.8:
+        return "A"
+    if coverage >= 0.6:
+        return "B"
+    if coverage >= 0.4:
+        return "C"
+    return "D"
+
+
+def build_ats_checklist(
+    feedback: Dict[str, Any],
+    requirements: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Lightweight ATS checklist: grade + per-skill matched flags.
+
+    Pure function over a feedback dict (sections with `missing` lists)
+    and requirement rows. Required skills drive the grade; nice_to_have
+    skills are listed for display only.
+    """
+    sections = (feedback or {}).get("sections", {}) or {}
+    missing_union: set = set()
+    for sec in sections.values():
+        missing_union |= set(str(m) for m in (sec.get("missing", []) or []))
+    items: List[Dict[str, Any]] = []
+    matched_req = 0
+    total_req = 0
+    for r in requirements or []:
+        skill = str(r.get("skill", ""))
+        cat = str(r.get("category", "required"))
+        matched = skill not in missing_union
+        items.append({"skill": skill, "category": cat, "matched": matched})
+        if cat == "required":
+            total_req += 1
+            matched_req += 1 if matched else 0
+    coverage = (matched_req / total_req) if total_req else 1.0
+    matched = [i["skill"] for i in items if i["category"] == "required" and i["matched"]]
+    missing = [i["skill"] for i in items if i["category"] == "required" and not i["matched"]]
+    return {
+        "grade": ats_grade(coverage),
+        "coverage": coverage,
+        "matched": matched,
+        "missing": missing,
+        "items": items,
+    }
+
+
 def create_feedback_run(
     profile_id: int,
     jd_id: int,
@@ -159,11 +207,23 @@ def create_feedback_run(
     from src.models import RunLog
 
     def _save(s):
+        from src.models import JDRequirement
+
         feedback = build_feedback(profile_id, jd_id, session=s,
                                   capacities=capacities)
+        req_rows = (
+            s.query(JDRequirement)
+            .filter(JDRequirement.jd_id == jd_id)
+            .order_by(JDRequirement.id)
+            .all()
+        )
+        checklist = build_ats_checklist(
+            feedback,
+            [{"skill": r.skill, "category": r.category} for r in req_rows],
+        )
         run = RunLog(profile_id=profile_id, jd_id=jd_id,
                      feedback={k: feedback[k] for k in
-                               ("weakest_section", "reasoning", "sections")},
+                               ("weakest_section", "reasoning", "sections")} | {"ats_checklist": checklist},
                      status="completed")
         s.add(run)
         s.flush()
