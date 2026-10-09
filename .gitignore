@@ -52,8 +52,8 @@ ehthumbs.db
 Thumbs.db
 
 # Outputs (user-generated files)
-outputs/*.pdf
-outputs/*.docx
+outputs/**
+samples/**
 uploads/*.pdf
 uploads/*.docx
 uploads/*.txt

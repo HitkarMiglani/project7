@@ -8,10 +8,10 @@
 
 ## 📊 Project Status Dashboard
 
-- **Current Phase:** Phase 7 — Export, Integration & Final Polish
-- **Current Stage:** Phase 7 complete (only Phase 6.1 fixtures + live report remain)
-- **Overall Completion:** 95%
-- **Status:** 🟢 Phase 7 complete
+- **Current Phase:** Version v1.1 — Single-Doc Ingestion & Fact Quality (P0+P1+P2) [PLANNED]
+- **Current Stage:** v1.1.0 planning complete, build not started
+- **Overall Completion:** 95% (v1.0 baseline done; v1.1 pending)
+- **Status:** 🟡 v1.1 planned — Phase 7 complete, Phase 6.1 fixtures still open
 
 | Phase | Description | Target Timeline | Status | Stages Total | Stages Completed |
 |---|---|---|---|---|---|
@@ -28,7 +28,11 @@
 
 ## 🎯 What is Next to be Picked Up (Immediate Action Item)
 
-1. **Phase 6 — Stage 6.1 — Fixture Dataset Construction**
+1. **Version v1.1 — Stage v1.1.0 → v1.1.1 (P0 prompt/format fix first)**
+    - See `## 🚀 Version v1.1 Roadmap` below. Start with P0 (`resume_format.md` + `normalize_fact()` + tailor via allocation), then P1 (GDoc sync), then P2 (bulk curation).
+    - Phase 6.1 fixtures remain open in parallel but v1.1 is the active track.
+
+2. **Phase 6 — Stage 6.1 — Fixture Dataset Construction**
     - Create 10–15 realistic profile/JD fixture pairs across specializations (backend, frontend, data, devops, mobile, ML) as importable fixtures.
     - Then 6.2 metric pipeline (keyword match, ATS density, fabrication rate, knapsack utilization); 6.3 needs live-LLM decision (baseline vs KnapResume burns API calls).
 
@@ -211,6 +215,57 @@ Legend:
 
 ---
 
+## 🚀 Version v1.1 Roadmap: Single-Doc Ingestion & Fact Quality (P0+P1+P2) — 📋 PLANNED
+
+*Objective: Kill ingestion irrelevance + tedious fact editing + malformed facts. One Google Doc becomes the user source-of-truth (easy to read/modify); facts sync from it with normalization; bulk curation retained for cleanup/offline. No DB migration; additive APIs only.*
+
+```
+Legend:
+[x] Completed
+[/] In Progress
+[ ] Pending
+[!] Blocked
+```
+
+### v1.1.0 — P0: Prompt & Formatting Fix (Estimated: 1 day)
+*Objective: Stop malformed claims at the source. No GDoc dependency.*
+- [ ] **Stage v1.1.0a — Resume prompt spec (`resume_format.md`)**
+  - New `resume_format.md` (ATS section order, `- Verb + scope + metric [F<id>]` bullet contract); `src/tailor.py:_resume_system_prompt` loads it instead of `instruct.md` for resumes.
+  - Route UI tailor through `tailor_resume_with_allocation()` (fix legacy `/api/tailor` full-dump bypass in `app.py:52` + `docs/index.html:777`).
+  - Fix `render_allocated_resume_text()` canonical section order (not alphabetical).
+- [ ] **Stage v1.1.0b — Fact normalization (`normalize_fact()`)**
+  - New `src/fact_format.py` (or extend `resume_parser.py`): strip markdown, collapse ws, `Role | Meta → Role — Company (dates)`, caps + trailing period, drop `<15 char` noise, `RapidFuzz >90` dedup.
+  - Wire into `add_fact/update_fact/ingest_resume` in `src/profile_service.py`.
+  - Tests: `tests/test_fact_format.py` (strip/pipe/dedup/period) + claims roundtrip (`[F<id>]` on every bullet).
+- [ ] **Gate:** `pytest -q` green, `py_compile` clean.
+
+### v1.1.1 — P1: Google Doc Source-of-Truth Sync (Estimated: 2 days)
+*Objective: Lazy editing — Doc is the only place you type; UI just syncs.*
+- [ ] **Stage v1.1.1a — Docs API reader (`src/gdoc_ingestor.py`)**
+  - Deps `google-api-python-client + google-auth`; config `GOOGLE_DOC_ID`, `GOOGLE_CREDENTIALS_PATH` in `.env.example`.
+  - `fetch_gdoc(doc_id)` via `documents.get` (SA `documents.readonly` scope; share Doc as Viewer to SA email); parse `body.content → paragraph/bullet` into `{H1 name, H2 section → bullets}` with strict whitelist (`experience/education/skills/projects/certifications/languages/summary/contact`); ignore everything else.
+  - Doc template: `H1 Name`, `H2` per section, bullets only under Experience.
+- [ ] **Stage v1.1.1b — Sync (`sync_profile_from_gdoc`)**
+  - Hash `(lower(section)|normalized content)` → insert/update/delete in one `_with_session` transaction; return `{added, updated, removed}` + store `gdoc_rev` in `profiles.sections` for offline fallback.
+  - API `POST /api/profile/<id>/sync-gdoc` (+ `GET` preview diff); UI `Sync from Doc` button with diff preview; keep old `/ingest` as fallback.
+  - Privacy: update `docs/privacy.html` (Doc traverses Google API).
+  - Tests: `tests/test_gdoc_ingestor.py` (mock Docs JSON: headings, bullets, noise ignored, stale removed).
+- [ ] **Gate:** live sync against one real Doc + `pytest -q` green.
+
+### v1.1.2 — P2: Bulk Fact Curation (Estimated: 1–1.5 days)
+*Objective: One-shot cleanup + offline editing without per-fact clicks.*
+- [ ] **Stage v1.1.2a — Canonical sections + bulk APIs**
+  - New `src/sections.py: canonicalize()` (shared `SECTION_ALIASES`; `CANONICAL=[contact,summary,experience,education,skills,projects,certifications,languages,other]`); use in `add/update/list_facts` (normalize on write, case-insensitive filter).
+  - `POST /api/profile/<id>/facts/bulk {facts, mode: merge|replace_section}`, `PUT /api/facts/bulk {updates}`, `POST .../facts/delete {ids}`, `POST .../facts/normalize`, `?mode=replace` on ingest, `GET /api/meta/sections`.
+  - `validate_fact()`: `2≤len≤2000`, dupe `(profile, lower(section), content)` → skip/409.
+- [ ] **Stage v1.1.2b — UI + CLI**
+  - `docs/index.html`: section `<select>` (from `/api/meta/sections`), per-row checkboxes + Pin/Move/Delete-selected toolbar, `Bulk paste` tab (`[section] content` per line), inline section+mandatory edit.
+  - `main.py`: `facts import/export/clear`, `profile list/show`.
+  - Tests: `tests/test_bulk_facts.py` (bulk merge/replace, typo canonicalized, stale pin re-inferred).
+- [ ] **Gate:** 50-fact bulk roundtrip in 1 call + `pytest -q` green. Diverges with Doc resolved by last-write-wins + diff preview.
+
+---
+
 ## 🚀 Version 2.0 Roadmap: LaTeX Template Engine, Structured Generation & ATS Valuation
 
 ```
@@ -333,4 +388,5 @@ Legend:
 | **2026-09-29** | Phase 6 CLI batch pipeline (folder JD PDFs) | Added `main.py` command `phase6-batch` to process one/many JD PDFs from a folder against an existing profile id (no dummy profile generation), run full allocation→tailor→claim verify→sanitize→feedback→PDF flow, persist `RunLog` + `Claim` rows, classify bottlenecks (`profile_facts_low`, `scoring_alignment`, `verification_risk`, `pdf_generation`, latency classes), and emit per-run + summary reports (`summary.md`/`summary.json`) with batch/linear sleeps. Added `tests/test_phase6_batch_cli.py` (7 tests), all passing. |
 | **2026-09-29** | Phase 6 CLI decision: PDF kept, no text | User decision locked: `phase6-batch` keeps PDF outputs (`run_root/pdf/*.pdf`, `resume_pdf_path`/`cover_pdf_path` on `RunLog`), no tailored-text (`.md`/`.txt`) outputs. Reverted interim text-only draft back to PDF stage (`pdf` + `pdf_failed` bottleneck paths). Stages 6.2/6.3 marked `[/]` In Progress (CLI foundation), 6.1/6.4 still `[ ]`. Full suite: 193 passed. |
 | **2026-09-29** | Stages 6.2–6.4 code-complete | Built `src/evaluation.py` (4 deterministic metrics, `evaluate_texts`/`evaluate_profile_jd` with injectable LLM/verify fns, `save_report` with pandas CSV + matplotlib chart) + `main.py phase6-eval` CLI (live baseline-vs-knap on one profile+JD). Added `tests/test_evaluation.py` (7 tests, offline). Full suite: 200 passed. Remaining: 6.1 fixtures + live benchmark run + root `Evaluation_Report.md` from live data. |
+| **2026-10-04** | v1.1 planning | v1.1 roadmap (P0 prompt/format + P1 GDoc sync + P2 bulk curation) planned; build not started. |
 | **2026-09-29** | Phase 7 complete (7.1 + 7.2 + 7.3) | 7.1 ATS checklist (`build_ats_checklist` in `feedback.py`, API + stored + UI scorecard, 3 tests). 7.2 PDF/persistence verified (27/27, no code changes). 7.3 offline E2E smoke (`tests/test_e2e_smoke.py`) + README refresh. Phase 7 gate: 204 passed, `py_compile` clean. |

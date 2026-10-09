@@ -1,813 +1,2460 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KnapResume — Knapsack resume tailoring, verified</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-/* ══ KnapResume · Light ATS-clean design system ══ */
-:root{
-  --bg:#f4f6f9; --surface:#ffffff; --surface2:#eef2f7;
-  --border:#dfe5ee; --border-strong:#b9c4d6;
-  --ink:#16202e; --muted:#4d5e75; --faint:#7c8ca3;
-  --accent:#1a56db; --accent-ink:#123fa8; --accent-soft:#e8effd;
-  --ok:#0e9f6e; --ok-soft:#e3f5ec;
-  --warn:#b45309; --warn-soft:#fdf0dc;
-  --err:#c81e1e; --err-soft:#fdecec;
-  --violet:#6d28d9; --violet-soft:#efe8fd;
-  --radius:10px; --shadow:0 1px 2px rgba(16,32,54,.06),0 4px 14px rgba(16,32,54,.06);
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.55;min-height:100vh}
-.wrap{max-width:1020px;margin:0 auto;padding:0 24px 90px}
-/* header */
-.topbar{display:flex;align-items:center;gap:12px;padding:18px 0 0;font-size:12px;color:var(--muted)}
-.topbar .dot{width:9px;height:9px;border-radius:50%;background:var(--faint)}
-.topbar.live .dot{background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft)}
-.topbar.down .dot{background:var(--err);box-shadow:0 0 0 4px var(--err-soft)}
-header.hero{padding:26px 0 22px;border-bottom:2px solid var(--ink);margin-bottom:22px}
-.eyebrow{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
-h1{font-family:'Fraunces',Georgia,serif;font-size:clamp(30px,4.4vw,46px);line-height:1.08;letter-spacing:-.01em}
-h1 em{font-style:italic;color:var(--accent)}
-.subtitle{margin-top:10px;color:var(--muted);max-width:640px;font-size:14.5px}
-.badge{display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:6px 14px;border-radius:100px;font-size:12px;font-weight:500;background:var(--surface);border:1px solid var(--border-strong);color:var(--muted)}
-.badge.live{border-color:var(--ok);color:var(--ok)}
-.badge.down{border-color:var(--err);color:var(--err)}
-/* stepper — the primary wayfinding */
-.stepper{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px}
-.step-tab{display:flex;gap:12px;align-items:flex-start;text-align:left;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;box-shadow:var(--shadow);font-family:inherit}
-.step-tab .n{width:26px;height:26px;border-radius:50%;background:var(--surface2);border:1px solid var(--border-strong);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
-.step-tab .t{font-size:13.5px;font-weight:600}
-.step-tab .d{font-size:12px;color:var(--muted);margin-top:2px}
-.step-tab.active{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-.step-tab.active .n{background:var(--accent);border-color:var(--accent);color:#fff}
-.step-tab.done .n{background:var(--ok);border-color:var(--ok);color:#fff}
-.step-tab:focus-visible,.btn-go:focus-visible,.btn-line:focus-visible,.btn-primary:focus-visible,
-.tab:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
-/* cards */
-.view{display:none}.view.active{display:block}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:18px;box-shadow:var(--shadow)}
-.card-title{font-size:14px;font-weight:600;margin-bottom:4px}
-.card-sub{font-size:12.5px;color:var(--muted);margin-bottom:16px}
-.section-label{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
-.row-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
-@media(max-width:560px){.row-2{grid-template-columns:1fr}.stepper{grid-template-columns:1fr}}
-.field-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-input,select,textarea{width:100%;background:#fff;border:1.5px solid var(--border-strong);border-radius:8px;padding:11px 14px;color:var(--ink);font-family:inherit;font-size:14px;outline:none;transition:border-color .15s, box-shadow .15s}
-input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-textarea{min-height:130px;line-height:1.6;resize:vertical}
-::placeholder{color:var(--faint)}
-/* buttons — one primary per screen */
-.btn-go{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:15.5px;font-weight:600;cursor:pointer;margin-top:10px}
-.btn-go:hover{background:var(--accent-ink)}
-.btn-go:disabled{background:var(--border-strong);cursor:not-allowed}
-.btn-primary{padding:11px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap}
-.btn-primary:hover{background:var(--accent-ink)}
-.btn-line{width:100%;padding:11px;background:#fff;border:1.5px solid var(--border-strong);border-radius:8px;color:var(--ink);font-size:12.5px;font-weight:600;cursor:pointer;margin-top:10px}
-.btn-line:hover{border-color:var(--accent);color:var(--accent)}
-.btn-line:disabled{opacity:.45;cursor:not-allowed}
-.btn-line.danger:hover{border-color:var(--err);color:var(--err)}
-.flex-row{display:flex;gap:10px}.flex-row .btn-line{margin-top:0}
-/* tabs */
-.tabs{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px;margin-bottom:16px;width:fit-content;max-width:100%;flex-wrap:wrap}
-.tab{font-size:12px;font-weight:600;padding:7px 16px;border-radius:6px;border:none;background:transparent;color:var(--muted);cursor:pointer}
-.tab.active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.tab-panel{display:none}.tab-panel.active{display:block}
-/* dropzone */
-.dropzone{border:2px dashed var(--border-strong);border-radius:8px;padding:28px;text-align:center;cursor:pointer;position:relative;background:#fbfcfe}
-.dropzone:hover,.dropzone.over{border-color:var(--accent);background:var(--accent-soft)}
-.dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;padding:0;border:none}
-.dz-icon{font-size:26px;margin-bottom:8px}
-.dz-label{font-size:13.5px;color:var(--muted)}.dz-label strong{color:var(--accent)}
-.dz-hint{font-size:11px;color:var(--faint);margin-top:5px}
-.file-ok{margin-top:10px;font-size:12px;font-weight:600;color:var(--ok);display:none}
-/* profiles */
-.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
-.pcard{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:18px;cursor:pointer;box-shadow:var(--shadow)}
-.pcard:hover{border-color:var(--accent)}
-.pcard.sel{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-.pcard h3{font-size:15px;font-weight:600;margin-bottom:4px}
-.pcard .meta{font-size:12px;color:var(--muted);line-height:1.7}
-.pcard .go{margin-top:8px;font-size:12px;font-weight:600;color:var(--ok)}
-.pcard.sel .go{color:var(--accent)}
-/* facts */
-.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px}
-.fchip{font-size:12px;font-weight:600;padding:5px 13px;border-radius:100px;border:1.5px solid var(--border-strong);background:#fff;color:var(--muted);cursor:pointer}
-.fchip.active{background:var(--ink);border-color:var(--ink);color:#fff}
-.facts{list-style:none;margin-top:12px;max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
-.facts li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;background:#fbfcfe}
-.facts .sec{font-size:10px;font-weight:700;color:var(--violet);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;padding:3px 8px;background:var(--violet-soft);border-radius:100px}
-.facts .star{color:var(--warn);font-size:13px;border:none;background:none;cursor:pointer;padding:0 2px}
-.facts .body{flex:1;min-width:0}
-.facts .edit-box{width:100%;margin-top:6px;font-size:13px;padding:8px 10px}
-.facts .mini{border:none;background:none;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;padding:2px 6px;border-radius:6px}
-.facts .mini:hover{color:var(--accent);background:var(--accent-soft)}
-.facts .mini.del:hover{color:var(--err);background:var(--err-soft)}
-.facts li.dropped{opacity:.6;border-style:dashed}
-.muted{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.7}
-/* chips / bars / scorecard */
-.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
-.chip{font-size:11.5px;font-weight:600;padding:4px 12px;border-radius:100px;border:1.5px solid var(--border-strong);color:var(--muted);background:#fff}
-.chip.req{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
-.chip.nice{border-color:var(--ok);color:var(--ok);background:var(--ok-soft)}
-.chip.miss{border-color:var(--warn);color:var(--warn);background:var(--warn-soft)}
-.chip.role{background:var(--ink);color:#fff;border-color:var(--ink)}
-.scorecard{border:1.5px solid var(--border);border-radius:8px;overflow:hidden;margin-top:12px}
-.scorecard .sc-head{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface2);font-size:13px;font-weight:600}
-.score-grade{width:38px;height:38px;border-radius:9px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;flex-shrink:0}
-.score-grade.good{background:var(--ok)}.score-grade.mid{background:var(--warn)}.score-grade.low{background:var(--err)}
-.bar-row{padding:10px 16px;border-top:1px solid var(--border)}
-.bar-head{display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:6px}
-.bar-head .pct{color:var(--muted)}
-.bar{height:9px;background:var(--surface2);border:1px solid var(--border);border-radius:100px;overflow:hidden}
-.bar>div{height:100%;background:var(--ok);transition:width .4s}
-.bar.mid>div{background:var(--warn)}.bar.low>div{background:var(--err)}
-.callout{margin-top:12px;padding:13px 15px;border:1.5px solid var(--warn);background:var(--warn-soft);border-radius:8px;font-size:13px;line-height:1.6}
-.callout.ok{border-color:var(--ok);background:var(--ok-soft)}
-.callout.err{border-color:var(--err);background:var(--err-soft)}
-.legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.legend span{font-size:11px;font-weight:600;padding:3px 11px;border-radius:100px}
-.lg-v{background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)}
-.lg-i{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn)}
-.lg-u{background:var(--err-soft);color:var(--err);border:1px solid var(--err)}
-/* chat layout */
-.chat-shell{display:flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;min-height:600px;background:#fff;box-shadow:var(--shadow)}
-.side{width:290px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:#fbfcfe}
-.side-head{padding:14px;border-bottom:1px solid var(--border)}
-.side-head input{margin-top:10px}
-.thread-list{flex:1;overflow-y:auto;max-height:640px}
-.thread{padding:13px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;gap:11px;background:#fff}
-.thread:hover{background:var(--accent-soft)}
-.thread.active{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
-.avatar{width:40px;height:40px;border-radius:50%;background:var(--ink);color:#fff;font-weight:600;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-.thread.active .avatar{background:var(--accent)}
-.thread .tt{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.thread .ts{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
-.thread .tm{margin-left:auto;font-size:10px;color:var(--faint);flex-shrink:0}
-.thread .flag{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn);font-size:9.5px;font-weight:700;padding:1px 8px;border-radius:100px;margin-top:5px;display:inline-block}
-.main{flex:1;display:flex;flex-direction:column;min-width:0}
-.chat-head{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--surface2)}
-.chat-head .tt{font-size:14px;font-weight:600}
-.chat-head .ts{font-size:11px;color:var(--muted)}
-.chat-head .acts{margin-left:auto;display:flex;gap:8px}
-.icon-btn{background:#fff;border:1.5px solid var(--border-strong);border-radius:7px;color:var(--muted);cursor:pointer;font-size:11.5px;font-weight:600;padding:7px 12px;font-family:inherit}
-.icon-btn:hover{border-color:var(--err);color:var(--err)}
-.timeline{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;max-height:560px;background:#fff;background-image:radial-gradient(var(--border) 1px,transparent 1px);background-size:22px 22px}
-.bubble{max-width:88%;padding:13px 16px;border-radius:14px;font-size:13.5px;line-height:1.6;background:#fff;border:1.5px solid var(--border);box-shadow:var(--shadow)}
-.bubble.in{align-self:flex-start;border-bottom-left-radius:4px}
-.bubble.out{align-self:flex-end;border-bottom-right-radius:4px;border-color:var(--accent);background:#f5f9ff}
-.bubble .who{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
-.bubble.out .who{color:var(--accent-ink)}
-.bubble .time{font-size:10.5px;color:var(--faint);margin-top:8px;text-align:right}
-.composer{border-top:1px solid var(--border);padding:14px 16px;background:var(--surface2)}
-.composer .row{display:flex;gap:8px;flex-wrap:wrap}
-.composer .btn-line{width:auto;margin-top:0;flex:1;min-width:130px}
-.composer .btn-primary{flex:1.4;min-width:170px;padding:11px}
-.empty-chat{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:10px;text-align:center;padding:44px}
-.empty-chat .big{font-size:42px}
-/* modal + toast + progress */
-.modal-veil{position:fixed;inset:0;background:rgba(16,32,54,.5);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
-.modal-veil.open{display:flex}
-.modal{background:#fff;border-radius:14px;padding:26px;max-width:560px;width:100%;max-height:86vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
-#prog{display:none;margin-top:16px}
-.prog-card{background:#fff;border:1.5px solid var(--accent);border-radius:var(--radius);padding:20px}
-.prog-title{font-family:'Fraunces',Georgia,serif;font-size:18px;margin-bottom:12px}
-.steps{list-style:none}
-.step{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--muted)}
-.step:last-child{border-bottom:none}
-.step.done{color:var(--ink)}.step.active{color:var(--accent);font-weight:600}
-.dot-s{width:9px;height:9px;border-radius:50%;background:var(--border-strong);flex-shrink:0}
-.step.done .dot-s{background:var(--ok)}
-.step.active .dot-s{background:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);animation:pulse 1s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.dl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-@media(max-width:520px){.dl-grid{grid-template-columns:1fr}}
-.dl-card{background:#fff;border:1.5px solid var(--ok);border-radius:9px;padding:14px;text-decoration:none;display:block;color:var(--ink)}
-.dl-card:hover{background:var(--ok-soft)}
-.dl-label{font-size:13.5px;font-weight:600}
-.dl-cta{margin-top:6px;font-size:11.5px;font-weight:600;color:var(--ok)}
-.err{background:var(--err-soft);border:1.5px solid var(--err);border-radius:var(--radius);padding:13px 18px;color:var(--err);font-size:13px;font-weight:500;display:none;margin-bottom:18px}
-.toast-wrap{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:99;display:flex;flex-direction:column;gap:8px;align-items:center}
-.toast{background:var(--ink);color:#fff;font-size:13px;font-weight:500;padding:11px 20px;border-radius:100px;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:tin .25s ease}
-.toast.ok{background:var(--ok)}.toast.bad{background:var(--err)}
-@keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
-.key-wrap{position:relative}
-.key-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:6px}
-.howto{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
-.howto div{background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12.5px;color:var(--muted)}
-.howto strong{display:block;color:var(--ink);font-size:12.5px;margin-bottom:2px}
-@media(max-width:640px){.howto{grid-template-columns:1fr}}
-footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--border-strong);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
-.fl,.fr{font-size:11px;color:var(--muted)}
-.fr a{color:var(--accent);text-decoration:none;font-weight:600}
-.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--border-strong);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:8px}
-@keyframes sp{to{transform:rotate(360deg)}}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-@media(max-width:860px){.chat-shell{flex-direction:column}.side{width:100%;border-right:none;border-bottom:1px solid var(--border)}.thread-list{max-height:220px}.timeline{max-height:none;min-height:320px}}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-</style>
-</head>
-<body>
-<div class="wrap">
-
-<div class="topbar down" id="topbar"><span class="dot" aria-hidden="true"></span><span id="backend-badge">Connecting to local backend…</span></div>
-
-<header class="hero">
-  <div class="eyebrow">KnapResume · Local-first pipeline</div>
-  <h1>Knapsack resume<br><em>tailoring</em>, verified</h1>
-  <p class="subtitle">One profile, many applications — each job description gets its own thread: structured JD, knapsack allocation, gap feedback and tailored PDFs, 1 : N from profile to JD. Unsupported claims never reach your PDF.</p>
-  <div class="legend" aria-label="Verification states">
-    <span class="lg-v">Verified — backed by a cited fact</span>
-    <span class="lg-i">Inferred — plausible, review it</span>
-    <span class="lg-u">Unsupported — blocked from export</span>
-  </div>
-</header>
-
-<div class="err" id="err" role="alert" aria-live="assertive"></div>
-
-<div class="howto" aria-label="How it works">
-  <div><strong>1 · Profile</strong>Create once, reuse for every application. Facts persist locally.</div>
-  <div><strong>2 · Facts</strong>Ingest a resume, curate ★ mandatory facts the knapsack may never drop.</div>
-  <div><strong>3 · Apply</strong>One chat per job: analyse gaps, inspect allocation, tailor PDFs.</div>
-</div>
-
-<nav class="stepper" aria-label="Workflow steps">
-  <button class="step-tab active" id="tab-profiles" onclick="go('profiles')"><span class="n">1</span><span><span class="t">Profile</span><div class="d">Create or pick up a profile</div></span></button>
-  <button class="step-tab" id="tab-facts" onclick="go('facts')"><span class="n">2</span><span><span class="t">Facts</span><div class="d">Ingest resume · curate truth</div></span></button>
-  <button class="step-tab" id="tab-chats" onclick="go('chats')"><span class="n">3</span><span><span class="t">Applications</span><div class="d">Chats · one thread per JD</div></span></button>
-</nav>
-
-<!-- ══ VIEW 1 · PROFILES ══ -->
-<section class="view active" id="view-profiles" aria-label="Profiles">
-  <div class="section-label">Step 1 — Build a profile, or pick up where you left off</div>
-  <div class="card">
-    <div class="card-title">New profile</div>
-    <div class="card-sub">A profile is your source of truth. All tailored resumes cite back to its facts.</div>
-    <div class="flex-row">
-      <label class="sr" for="profile-name">Profile name</label>
-      <input id="profile-name" placeholder="e.g. Alice — Backend Engineer" onkeydown="if(event.key==='Enter')createProfile()">
-      <button class="btn-primary" onclick="createProfile()">Create →</button>
-    </div>
-  </div>
-  <div class="section-label">Existing profiles</div>
-  <div class="pgrid" id="profile-grid"></div>
-</section>
-
-<!-- ══ VIEW 2 · FACTS ══ -->
-<section class="view" id="view-facts" aria-label="Facts">
-  <div class="section-label">Step 2 — Facts for <span id="facts-pname">…</span></div>
-  <div class="card">
-    <div class="card-title">Ingest a resume, then curate the facts</div>
-    <div class="card-sub">★ mandatory facts are pinned — the knapsack allocator always keeps them, even over budget.</div>
-    <div class="tabs" id="rtabs" role="tablist">
-      <button type="button" class="tab active" data-p="rp-file">Upload file</button>
-      <button type="button" class="tab" data-p="rp-text">Paste text</button>
-      <button type="button" class="tab" data-p="rp-add">Add fact</button>
-    </div>
-    <div class="tab-panel active" id="rp-file">
-      <div class="dropzone"><input type="file" id="res-file" accept=".pdf,.docx,.txt,.md" aria-label="Resume file">
-        <div class="dz-icon" aria-hidden="true">📄</div><div class="dz-label"><strong>Click to upload</strong> or drag &amp; drop</div>
-        <div class="dz-hint">PDF · DOCX · TXT · MD — parsed server-side</div>
-        <div class="file-ok" id="rfn"></div></div>
-      <button class="btn-line" onclick="ingestFile()">Ingest into this profile</button>
-    </div>
-    <div class="tab-panel" id="rp-text">
-      <label class="sr" for="res-text">Resume text</label>
-      <textarea id="res-text" placeholder="Paste your full resume text here..."></textarea>
-      <button class="btn-line" onclick="ingestText()">Ingest into this profile</button>
-    </div>
-    <div class="tab-panel" id="rp-add">
-      <div class="row-2">
-        <div><div class="field-label"><label for="fact-section">Section</label></div><input id="fact-section" placeholder="experience"></div>
-        <div><div class="field-label"><label for="fact-mandatory">Mandatory (never dropped)</label></div>
-          <select id="fact-mandatory"><option value="">auto</option><option value="true">true</option><option value="false">false</option></select></div>
-      </div>
-      <label class="sr" for="fact-content">Fact content</label>
-      <textarea id="fact-content" style="min-height:80px" placeholder="One verifiable statement, e.g. Built Python microservices serving 40k req/day..."></textarea>
-      <button class="btn-line" onclick="addFact()">Add fact</button>
-    </div>
-    <div class="filter-row" id="fact-filters" aria-label="Filter facts by section"></div>
-    <ul class="facts" id="facts"></ul>
-    <div class="muted" id="facts-meta"></div>
-    <button class="btn-go" onclick="go('chats')">Open applications for this profile →</button>
-  </div>
-</section>
-
-<!-- ══ VIEW 3 · APPLICATION CHATS ══ -->
-<section class="view" id="view-chats" aria-label="Applications">
-  <div class="section-label">Step 3 — One chat per job · <span id="chats-pname">…</span></div>
-  <div class="chat-shell">
-    <aside class="side" aria-label="Application threads">
-      <div class="side-head">
-        <button class="btn-primary" style="width:100%" onclick="openNewChat()">＋ New application</button>
-        <label class="sr" for="chat-search">Search applications</label>
-        <input id="chat-search" placeholder="Search applications…" oninput="renderThreads()">
-      </div>
-      <div class="thread-list" id="thread-list"></div>
-    </aside>
-    <div class="main" id="chat-main">
-      <div class="empty-chat"><div class="big" aria-hidden="true">💼</div><div><strong>Pick an application, or start a new one.</strong><br>Each chat is one JD threaded under this profile — with gap analysis, allocation and PDFs.</div></div>
-    </div>
-  </div>
-</section>
-
-<footer>
-  <div class="fl">KNAPRESUME · 1 PROFILE : N JD CHATS · LOCAL-FIRST</div>
-  <div class="fr">Local backend <span id="foot-status">…</span> · <a href="./privacy.html">Privacy Policy</a></div>
-</footer>
-</div>
-
-<!-- New-application modal -->
-<div class="modal-veil" id="newchat-veil">
-  <div class="modal" role="dialog" aria-modal="true" aria-label="New application">
-    <div class="card-title">New application</div>
-    <div class="card-sub">Paste a job description — it will be structured &amp; attached. Or attach an existing one.</div>
-    <div class="field-label"><label for="newchat-jd">Job description text</label></div>
-    <textarea id="newchat-jd" placeholder="Paste the full job description..."></textarea>
-    <div class="field-label" style="margin-top:12px"><label for="newchat-existing">…or an already-structured job</label></div>
-    <select id="newchat-existing"><option value="">— none —</option></select>
-    <button class="btn-go" onclick="createChat()">Create application →</button>
-    <button class="btn-line" onclick="closeNewChat()">Cancel</button>
-  </div>
-</div>
-
-<!-- Attach-JD modal -->
-<div class="modal-veil" id="attach-veil">
-  <div class="modal" role="dialog" aria-modal="true" aria-label="Attach a job description">
-    <div class="card-title">Attach a job description</div>
-    <div class="card-sub">Structured into required / nice-to-have skills with role classification.</div>
-    <div class="tabs">
-      <button type="button" class="tab active" data-p="ap-text">Paste text</button>
-      <button type="button" class="tab" data-p="ap-file">Drop a file</button>
-      <button type="button" class="tab" data-p="ap-existing">Existing job</button>
-    </div>
-    <div class="tab-panel active" id="ap-text">
-      <label class="sr" for="attach-jd-text">Job description text</label>
-      <textarea id="attach-jd-text" placeholder="Paste the full job description..."></textarea>
-      <button class="btn-go" onclick="attachJDText()">Structure &amp; attach →</button>
-    </div>
-    <div class="tab-panel" id="ap-file">
-      <div class="dropzone"><input type="file" id="attach-jd-file" accept=".pdf,.docx,.txt,.md" aria-label="Job description file">
-        <div class="dz-icon" aria-hidden="true">📋</div><div class="dz-label"><strong>Click to upload</strong> or drag &amp; drop</div>
-        <div class="dz-hint">PDF · DOCX · TXT · MD — parsed server-side</div>
-        <div class="file-ok" id="attach-jd-fn"></div></div>
-      <button class="btn-go" onclick="attachJDFile()">Upload &amp; attach →</button>
-    </div>
-    <div class="tab-panel" id="ap-existing">
-      <div class="field-label"><label for="attach-jd-existing">Already-structured jobs</label></div>
-      <select id="attach-jd-existing"><option value="">— none —</option></select>
-      <button class="btn-go" onclick="attachJDExisting()">Attach selected →</button>
-    </div>
-    <button class="btn-line" onclick="closeAttach()">Cancel</button>
-  </div>
-</div>
-
-<div class="toast-wrap" id="toasts" aria-live="polite"></div>
-
-<script>
-// ── State + client ──
-let backendMode=false, profileId=Number(localStorage.getItem('knap.profileId'))||null;
-let profileName='', chatId=Number(localStorage.getItem('knap.chatId'))||null;
-let threads=[], currentChat=null, currentView='profiles', factFilter='all', allFacts=[];
-
-async function api(path,opts={}){const r=await fetch(path,opts);const b=await r.json().catch(()=>({}));if(!r.ok)throw new Error(b.error||('HTTP '+r.status));return b;}
-const postJSON=(p,d)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const shortTime=s=>{if(!s)return '';const d=new Date(s);const t=new Date();const same=d.toDateString()===t.toDateString();return same?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString([],{month:'short',day:'numeric'});};
-function showErr(m){const e=document.getElementById('err');e.textContent='⚠ '+m;e.style.display='block';window.scrollTo({top:0,behavior:'smooth'});}
-function hideErr(){document.getElementById('err').style.display='none';}
-function toast(m,kind){const w=document.getElementById('toasts');const t=document.createElement('div');t.className='toast'+(kind?' '+kind:'');t.textContent=m;w.appendChild(t);setTimeout(()=>t.remove(),3200);}
-function setBadge(live,txt){const b=document.getElementById('backend-badge');b.textContent=txt;document.getElementById('topbar').className='topbar '+(live?'live':'down');b.classList.toggle('live',!!live);b.classList.toggle('down',!live);}
-
-// ── View router ──
-function go(view){
-  if(!backendMode){showErr('Backend offline — run `python app.py` first.');return;}
-  if(view!=='profiles'&&!profileId){showErr('Pick or create a profile first (step 1).');view='profiles';}
-  currentView=view;
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.getElementById('view-'+view).classList.add('active');
-  document.querySelectorAll('.step-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('tab-'+view).classList.add('active');
-  document.getElementById('tab-profiles').classList.toggle('done',!!profileId);
-  document.getElementById('tab-facts').classList.toggle('done',view==='chats');
-  hideErr();
-  if(view==='facts')loadFacts();
-  if(view==='chats')loadThreads();
-}
-
-// ── Step 1 · Profiles ──
-async function loadProfiles(){
-  const profiles=await api('/api/profiles');
-  if(profileId&&!profiles.some(p=>p.id===profileId)){profileId=null;localStorage.removeItem('knap.profileId');}
-  const grid=document.getElementById('profile-grid');
-  grid.innerHTML=profiles.map(p=>
-    `<div class="pcard${p.id===profileId?' sel':''}" onclick="pickProfile(${p.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter')pickProfile(${p.id})"><h3>${esc(p.name)}</h3>`+
-    `<div class="meta">${p.fact_count} facts · #${p.id}<br>updated ${shortTime(p.updated_at)}</div>`+
-    `<div class="go">${p.id===profileId?'● ACTIVE — open facts →':'open →'}</div></div>`).join('')
-    ||'<div class="muted">No profiles yet — create your first one above.</div>';
-  const sel=profiles.find(p=>p.id===profileId);
-  profileName=sel?sel.name:'';
-  document.getElementById('tab-profiles').classList.toggle('done',!!profileId);
-}
-async function createProfile(){
-  const name=document.getElementById('profile-name').value.trim()||'Default Profile';
-  try{const p=await postJSON('/api/profile',{name});document.getElementById('profile-name').value='';
-    profileId=p.id;localStorage.setItem('knap.profileId',profileId);
-    await loadProfiles();hideErr();toast('Profile created');go('facts');
-  }catch(e){showErr(e.message);}
-}
-async function pickProfile(id){
-  profileId=id;localStorage.setItem('knap.profileId',id);
-  chatId=null;localStorage.removeItem('knap.chatId');
-  await loadProfiles();go('facts');
-}
-
-// ── Step 2 · Facts ──
-document.querySelectorAll('#view-facts .tabs').forEach(tabs=>{
-  tabs.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{
-    tabs.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');
-    tabs.parentElement.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-    document.getElementById(tab.dataset.p).classList.add('active');
-  }));
-});
-document.getElementById('res-file').addEventListener('change',function(){
-  const el=document.getElementById('rfn');el.textContent=this.files[0]?'✓ '+this.files[0].name:'';el.style.display=this.files[0]?'block':'none';
-});
-async function loadFacts(){
-  document.getElementById('facts-pname').textContent=profileName||('profile #'+profileId);
-  if(!profileId)return;
-  try{
-    allFacts=await api(`/api/profile/${profileId}/facts`);
-    const secs=['all',...new Set(allFacts.map(f=>f.section))];
-    if(!secs.includes(factFilter))factFilter='all';
-    document.getElementById('fact-filters').innerHTML=secs.map(s=>
-      `<button class="fchip${s===factFilter?' active':''}" onclick="setFactFilter('${esc(s)}')">${esc(s)} (${s==='all'?allFacts.length:allFacts.filter(f=>f.section===s).length})</button>`).join('');
-    renderFacts();
-  }catch(e){showErr(e.message);}
-}
-function setFactFilter(s){factFilter=s;loadFacts();}
-function renderFacts(){
-  const list=factFilter==='all'?allFacts:allFacts.filter(f=>f.section===factFilter);
-  document.getElementById('facts').innerHTML=list.map(f=>
-    `<li><span class="sec">${esc(f.section)}</span>`+
-    `<button class="star" title="Toggle mandatory — never dropped by knapsack" onclick="toggleMandatory(${f.id},${!f.is_mandatory})" aria-label="Toggle mandatory">${f.is_mandatory?'★':'☆'}</button>`+
-    `<span class="body">${esc(f.content)}<span id="edit-${f.id}"></span></span>`+
-    `<button class="mini" onclick="startEditFact(${f.id})">edit</button><button class="mini del" onclick="delFact(${f.id})" aria-label="Delete fact">✕</button></li>`).join('')
-    ||'<li style="opacity:.65">No facts in this section yet — ingest a resume or add one manually.</li>';
-  const mand=allFacts.filter(f=>f.is_mandatory).length;
-  document.getElementById('facts-meta').textContent=`${allFacts.length} facts stored · ★ ${mand} mandatory = pinned by the knapsack · click ☆ to pin`;
-}
-let _editCache={};
-function startEditFact(fid){
-  const f=allFacts.find(x=>x.id===fid);if(!f)return;
-  _editCache[fid]=f.content;
-  document.getElementById('edit-'+fid).innerHTML=
-    `<textarea class="edit-box" id="editbox-${fid}">${esc(f.content)}</textarea>`+
-    `<div style="display:flex;gap:8px;margin-top:6px"><button class="mini" onclick="saveEditFact(${fid})">save</button>`+
-    `<button class="mini" onclick="cancelEditFact(${fid})">cancel</button></div>`;
-  document.getElementById('editbox-'+fid).focus();
-}
-function cancelEditFact(fid){document.getElementById('edit-'+fid).innerHTML='';}
-async function saveEditFact(fid){
-  const v=document.getElementById('editbox-'+fid).value.trim();
-  if(!v)return showErr('Fact text cannot be empty.');
-  try{await api(`/api/fact/${fid}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:v})});hideErr();toast('Fact updated','ok');await loadFacts();}catch(e){showErr(e.message);}
-}
-async function toggleMandatory(fid,val){
-  try{await api(`/api/fact/${fid}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({is_mandatory:val})});await loadFacts();}catch(e){showErr(e.message);}
-}
-async function ingestFile(){
-  const f=document.getElementById('res-file').files[0];
-  if(!f)return showErr('Choose a resume file first.');
-  const fd=new FormData();fd.append('resume_file',f);
-  try{const r=await (await fetch(`/api/profile/${profileId}/ingest`,{method:'POST',body:fd})).json();
-    if(r.error)throw new Error(r.error);hideErr();toast(`${r.facts_created||''} facts ingested`.trim(),'ok');await loadFacts();
-  }catch(e){showErr(e.message);}
-}
-async function ingestText(){
-  const t=document.getElementById('res-text').value.trim();
-  if(!t)return showErr('Paste resume text first.');
-  try{const r=await postJSON(`/api/profile/${profileId}/ingest`,{resume_text:t});hideErr();toast('Resume ingested','ok');
-    document.getElementById('res-text').value='';await loadFacts();
-  }catch(e){showErr(e.message);}
-}
-async function addFact(){
-  const section=document.getElementById('fact-section').value.trim();
-  const content=document.getElementById('fact-content').value.trim();
-  const m=document.getElementById('fact-mandatory').value;
-  if(!section||!content)return showErr('Section and content are required.');
-  const body={section,content};if(m)body.is_mandatory=(m==='true');
-  try{await postJSON(`/api/profile/${profileId}/facts`,body);hideErr();toast('Fact added','ok');
-    document.getElementById('fact-content').value='';await loadFacts();
-  }catch(e){showErr(e.message);}
-}
-async function delFact(fid){
-  if(!confirm('Delete this fact?'))return;
-  try{await api(`/api/fact/${fid}`,{method:'DELETE'});await loadFacts();toast('Fact deleted');}catch(e){showErr(e.message);}
-}
-
-// ── Step 3 · Application chats ──
-async function loadThreads(){
-  document.getElementById('chats-pname').textContent=profileName||('profile #'+profileId);
-  try{
-    threads=await api(`/api/profile/${profileId}/chats`);
-    if(chatId&&!threads.some(t=>t.id===chatId)){chatId=null;localStorage.removeItem('knap.chatId');}
-    renderThreads();
-    if(chatId)openChat(chatId,true);
-    else document.getElementById('chat-main').innerHTML=
-      `<div class="empty-chat"><div class="big">💼</div><div><strong>Pick an application, or start a new one.</strong><br>Each chat is one JD threaded under this profile.</div></div>`;
-  }catch(e){showErr(e.message);}
-}
-function renderThreads(){
-  const q=(document.getElementById('chat-search').value||'').toLowerCase();
-  const list=threads.filter(t=>(t.title+' '+(t.company||'')+' '+(t.job_title||'')).toLowerCase().includes(q));
-  document.getElementById('thread-list').innerHTML=list.map(t=>{
-    const init=((t.company||t.title||'?')[0]||'?').toUpperCase();
-    const sub=t.jd_id?`${esc(t.company||'')} · ${esc(t.job_title||'')}${t.role_type?' · '+esc(t.role_type):''}`:'No JD attached yet';
-    const flag=t.latest_run&&t.latest_run.weakest_section?`<span class="flag">gap: ${esc(t.latest_run.weakest_section)}</span>`:(t.latest_run?`<span class="flag" style="background:var(--ok-soft);color:var(--ok);border-color:var(--ok)">✓ analysed</span>`:'');
-    return `<div class="thread${t.id===chatId?' active':''}" onclick="openChat(${t.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openChat(${t.id})"><div class="avatar">${esc(init)}</div>`+
-      `<div style="min-width:0;flex:1"><div class="tt">${esc(t.title)}</div><div class="ts">${sub}</div>${flag}</div>`+
-      `<div class="tm">${shortTime(t.updated_at)}</div></div>`;
-  }).join('')||'<div class="muted" style="padding:16px">No applications yet — start one above.</div>';
-}
-function openNewChat(){
-  document.getElementById('newchat-jd').value='';
-  api('/api/jds').then(jds=>{
-    document.getElementById('newchat-existing').innerHTML='<option value="">— none —</option>'+
-      jds.map(j=>`<option value="${j.id}">#${j.id} ${esc(j.job_title||'Role')}${j.company?' @ '+esc(j.company):''}</option>`).join('');
-  }).catch(()=>{});
-  document.getElementById('newchat-veil').classList.add('open');
-  setTimeout(()=>document.getElementById('newchat-jd').focus(),50);
-}
-function closeNewChat(){document.getElementById('newchat-veil').classList.remove('open');}
-async function createChat(){
-  const text=document.getElementById('newchat-jd').value.trim();
-  const existing=document.getElementById('newchat-existing').value;
-  try{
-    let body={};
-    if(text)body={jd_text:text};
-    else if(existing)body={jd_id:Number(existing)};
-    else body={title:'Untitled application'};
-    const t=await postJSON(`/api/profile/${profileId}/chats`,body);
-    closeNewChat();hideErr();toast('Application created','ok');
-    await loadThreads();openChat(t.id);
-  }catch(e){showErr(e.message);}
-}
-async function deleteChat(id){
-  if(!confirm('Delete this chat? The JD and past runs are kept.'))return;
-  try{await api(`/api/chats/${id}`,{method:'DELETE'});
-    if(chatId===id){chatId=null;localStorage.removeItem('knap.chatId');}
-    await loadThreads();hideErr();toast('Chat deleted');
-  }catch(e){showErr(e.message);}
-}
-function coverageGrade(cov){if(cov==null)return '';return cov>=0.8?'':' mid';}
-function scorecardHTML(fb){
-  const secs=fb.sections||{};
-  const names=Object.keys(secs);
-  const cl=fb.ats_checklist||null;
-  if(!names.length&&!cl)return `<div class="muted">No gap data yet — run an analysis.</div>`;
-  let grade,gcls,avg;
-  if(cl){
-    grade=cl.grade;avg=cl.coverage??0;
-    gcls=avg>=0.6?'good':avg>=0.4?'mid':'low';
-  }else{
-    let covs=names.map(s=>secs[s].coverage??0);
-    avg=names.length?covs.reduce((a,b)=>a+b,0)/covs.length:0;
-    grade=avg>=0.8?'A':avg>=0.6?'B':avg>=0.4?'C':'D';
-    gcls=avg>=0.6?'good':avg>=0.4?'mid':'low';
-  }
-  const rows=names.map(s=>{
-    const v=secs[s];const pct=Math.round((v.coverage??0)*100);
-    const cls=(v.coverage??0)>=0.6?'':(v.coverage??0)>=0.4?'mid':'low';
-    const miss=Array.isArray(v.missing)?v.missing.map(m=>`<span class="chip miss">✕ ${esc(m)}</span>`).join(''):'';
-    return `<div class="bar-row"><div class="bar-head"><span>${esc(s)}</span><span class="pct">${pct}% · ${v.matched??0}/${v.total??((v.matched??0)+(Array.isArray(v.missing)?v.missing.length:0))}</span></div>`+
-      `<div class="bar${cls}"><div style="width:${pct}%"></div></div>${miss?`<div class="chips">${miss}</div>`:''}</div>`;
-  }).join('');
-  const chips=cl?`<div class="chips">${(cl.matched||[]).map(m=>`<span class="chip nice">✓ ${esc(m)}</span>`).join('')}${(cl.missing||[]).map(m=>`<span class="chip miss">✕ ${esc(m)}</span>`).join('')}</div>`:'';
-  return `<div class="scorecard"><div class="sc-head"><div class="score-grade ${gcls}">${grade}</div>`+
-    `<div>ATS match · ${Math.round(avg*100)}% required-skill coverage${fb.weakest_section?` · weakest: <strong>${esc(fb.weakest_section)}</strong>`:''}</div></div>${chips}${rows}</div>`;
-}
-async function openChat(id,silent){
-  chatId=id;localStorage.setItem('knap.chatId',id);
-  renderThreads();
-  const main=document.getElementById('chat-main');
-  main.innerHTML=`<div class="empty-chat"><span class="spin"></span>Loading application…</div>`;
-  try{
-    const t=await api(`/api/chats/${id}`);
-    currentChat=t;
-    const head=`<div class="chat-head"><div class="avatar">${esc(((t.company||t.title||'?')[0]||'?').toUpperCase())}</div>`+
-      `<div><div class="tt">${esc(t.title)}</div><div class="ts">${t.jd_id?esc((t.job_title||'')+(t.company?' @ '+t.company:''))+' · '+esc(t.role_type||''):('application #'+t.id+' · no JD yet')}</div></div>`+
-      `<div class="acts"><button class="icon-btn" onclick="deleteChat(${t.id})">delete</button></div></div>`;
-    let bubbles='';
-    if(t.jd){
-      const reqs=(t.jd.requirements||[]).filter(r=>r.category==='required').map(r=>r.skill);
-      const nice=(t.jd.requirements||[]).filter(r=>r.category!=='required').map(r=>r.skill);
-      bubbles+=`<div class="bubble in"><div class="who">📋 Job description</div>`+
-        `<div><strong>${esc(t.jd.job_title||'Role')}</strong>${t.jd.company?' @ '+esc(t.jd.company):''} <span class="chip role">${esc(t.jd.role_type||'?')}</span></div>`+
-        `<div class="chips">${reqs.map(s=>`<span class="chip req">${esc(s)}</span>`).join('')}${nice.map(s=>`<span class="chip nice">${esc(s)}</span>`).join('')}</div>`+
-        `<div class="time">${shortTime(t.created_at)}</div></div>`;
-    } else {
-      bubbles+=`<div class="bubble in"><div class="who">📋 Job description</div>No JD attached yet — paste one with “Attach JD” below.<div class="time">${shortTime(t.created_at)}</div></div>`;
-    }
-    for(const r of (t.runs||[])){
-      const fb=r.feedback||{};
-      if(fb.kind==='tailor'){
-        bubbles+=`<div class="bubble out"><div class="who">✉️ Tailored PDFs · run #${r.id}</div>`+
-          `<div><strong>${esc(fb.job_title||'Role')}</strong>${fb.company?' @ '+esc(fb.company):''}</div>`+
-          `<div class="dl-grid"><a class="dl-card" href="/api/runs/${r.id}/download/resume" download><div class="dl-label">📄 Resume</div><div class="dl-cta">↓ Download</div></a>`+
-          `<a class="dl-card" href="/api/runs/${r.id}/download/cover" download><div class="dl-label">✉️ Cover letter</div><div class="dl-cta">↓ Download</div></a></div>`+
-          `<div class="time">${shortTime(r.created_at)}</div></div>`;
-        continue;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KnapResume — Knapsack resume tailoring, verified</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ══ KnapResume · Light ATS-clean design system ══ */
+      :root {
+        --bg: #f4f6f9;
+        --surface: #ffffff;
+        --surface2: #eef2f7;
+        --border: #dfe5ee;
+        --border-strong: #b9c4d6;
+        --ink: #16202e;
+        --muted: #4d5e75;
+        --faint: #7c8ca3;
+        --accent: #1a56db;
+        --accent-ink: #123fa8;
+        --accent-soft: #e8effd;
+        --ok: #0e9f6e;
+        --ok-soft: #e3f5ec;
+        --warn: #b45309;
+        --warn-soft: #fdf0dc;
+        --err: #c81e1e;
+        --err-soft: #fdecec;
+        --violet: #6d28d9;
+        --violet-soft: #efe8fd;
+        --radius: 10px;
+        --shadow:
+          0 1px 2px rgba(16, 32, 54, 0.06), 0 4px 14px rgba(16, 32, 54, 0.06);
       }
-      bubbles+=`<div class="bubble out"><div class="who">📊 ATS analysis · run #${r.id}</div>`+
-        (fb.weakest_section?`<div><strong>Weakest: ${esc(fb.weakest_section)}</strong> — ${esc(fb.reasoning||'')}</div>`:`<div>${esc(fb.reasoning||'No gaps found — strong match.')}</div>`)+
-        scorecardHTML(fb)+`<div class="time">${shortTime(r.created_at)}</div></div>`;
-    }
-    main.innerHTML=head+`<div class="timeline" id="timeline">${bubbles}</div>`+
-      `<div class="composer"><div class="row">`+
-      `<button class="btn-primary" onclick="chatRun()">▶ Run analysis</button>`+
-      `<button class="btn-line" onclick="chatRerun()">↻ Re-run + diff</button>`+
-      `<button class="btn-line" onclick="chatAllocate()">🧮 Allocation</button>`+
-      (t.jd_id?'':`<button class="btn-line" onclick="chatAttach()">📋 Attach JD</button>`)+
-      `<button class="btn-line" onclick="chatTailorForm()">✉️ Tailor PDFs</button>`+
-      `</div><div id="chat-extra"></div><div id="chat-tailor"></div></div>`;
-    const tl=document.getElementById('timeline');tl.scrollTop=tl.scrollHeight;
-  }catch(e){if(!silent)showErr(e.message);}
-}
-async function chatRun(){
-  if(!currentChat?.jd_id)return showErr('Attach a JD to this chat first.');
-  const extra=document.getElementById('chat-extra');
-  extra.innerHTML='<div class="muted"><span class="spin"></span>Scoring facts + knapsack allocation + gap analysis…</div>';
-  try{
-    const r=await postJSON('/api/runs',{profile_id:profileId,jd_id:currentChat.jd_id});
-    hideErr();toast('Analysis complete','ok');await loadThreads();openChat(chatId,true);
-    const tl=document.getElementById('timeline');if(tl)tl.scrollTop=tl.scrollHeight;
-  }catch(e){showErr(e.message);extra.innerHTML='';}
-}
-async function chatRerun(){
-  const extra=document.getElementById('chat-extra');
-  const last=(currentChat?.runs||[]).slice(-1)[0];
-  if(!last)return showErr('No runs yet — run an analysis first.');
-  extra.innerHTML='<div class="muted"><span class="spin"></span>Re-running after your edits…</div>';
-  try{
-    const r=await postJSON(`/api/runs/${last.id}/rerun`,{});
-    hideErr();toast('Re-run complete','ok');await loadThreads();openChat(chatId,true);
-    const d=Object.entries(r.diff||{}).map(([s,v])=>{
-      const tags=[...(v.newly_matched||[]).map(m=>`<span class="chip nice">+ ${esc(m)}</span>`),
-                  ...(v.newly_missing||[]).map(m=>`<span class="chip miss">− ${esc(m)}</span>`)].join('');
-      return `<div class="muted">${esc(s)}: ${v.delta==null?'?':((v.delta>=0?'+':'')+Number(v.delta).toFixed(2))}</div>${tags?`<div class="chips">${tags}</div>`:''}`;
-    }).join('')||'<div class="muted">No section changes.</div>';
-    document.getElementById('chat-extra').innerHTML=
-      `<div class="callout ok">↻ Re-run #${r.run_id} vs #${r.prev_run_id}:</div>`+d;
-  }catch(e){showErr(e.message);extra.innerHTML='';}
-}
-async function chatAllocate(){
-  if(!currentChat?.jd_id)return showErr('Attach a JD to this chat first.');
-  const extra=document.getElementById('chat-extra');
-  extra.innerHTML='<div class="muted"><span class="spin"></span>Running knapsack allocator…</div>';
-  try{
-    const a=await postJSON('/api/allocate',{profile_id:profileId,jd_id:currentChat.jd_id});
-    hideErr();
-    extra.innerHTML=`<div class="callout ok">🧮 Knapsack picked <strong>${a.selected_count}</strong> facts, dropped <strong>${a.dropped_count}</strong> · total utility ${Number(a.total_utility).toFixed(2)}. ★ mandatory facts are always kept.</div>`+
-    Object.entries(a.sections).map(([s,v])=>{
-      const pct=v.capacity?Math.min(100,Math.round(v.total_weight/v.capacity*100)):100;
-      const sel=v.selected.map(f=>`<li><span class="sec">${esc(f.section)}</span>${f.is_mandatory?'<span style="color:var(--warn)">★</span>':''}<span>${esc(f.content)}${f.utility!=null?` <span style="color:var(--faint)">· u=${Number(f.utility).toFixed(2)}</span>`:''}</span></li>`).join('');
-      const drop=v.dropped.map(f=>`<li class="dropped"><span class="sec">${esc(f.section)}</span><span>${esc(f.content)}</span></li>`).join('');
-      return `<div class="field-label" style="margin-top:12px">${esc(s)} — ${v.selected.length} kept / ${v.dropped.length} dropped · ${v.total_weight}/${v.capacity} chars (${pct}%)</div><ul class="facts" style="max-height:190px">${sel}${drop}</ul>`;
-    }).join('');
-  }catch(e){showErr(e.message);extra.innerHTML='';}
-}
-async function chatAttach(){
-  document.getElementById('attach-jd-text').value='';
-  document.getElementById('attach-jd-fn').style.display='none';
-  document.getElementById('attach-jd-file').value='';
-  try{
-    const jds=await api('/api/jds');
-    document.getElementById('attach-jd-existing').innerHTML='<option value="">— none —</option>'+
-      jds.map(j=>`<option value="${j.id}">#${j.id} ${esc(j.job_title||'Role')}${j.company?' @ '+esc(j.company):''}</option>`).join('');
-  }catch(e){}
-  document.querySelectorAll('#attach-veil .tab').forEach(t=>t.classList.toggle('active',t.dataset.p==='ap-text'));
-  document.querySelectorAll('#attach-veil .tab-panel').forEach(p=>p.classList.toggle('active',p.id==='ap-text'));
-  document.getElementById('attach-veil').classList.add('open');
-  setTimeout(()=>document.getElementById('attach-jd-text').focus(),50);
-}
-function closeAttach(){document.getElementById('attach-veil').classList.remove('open');}
-async function attachJDById(jdId){
-  await api(`/api/chats/${chatId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({jd_id:jdId})});
-  closeAttach();hideErr();toast('JD attached','ok');await loadThreads();openChat(chatId,true);
-}
-async function attachJDText(){
-  const text=document.getElementById('attach-jd-text').value.trim();
-  if(!text)return showErr('Paste the job description first.');
-  try{
-    const jd=await postJSON('/api/jds',{raw_text:text});
-    await attachJDById(jd.id);
-  }catch(e){showErr(e.message);}
-}
-async function attachJDFile(){
-  const f=document.getElementById('attach-jd-file').files[0];
-  if(!f)return showErr('Choose a job file first.');
-  const fd=new FormData();fd.append('jd_file',f);
-  try{
-    const r=await fetch('/api/jds',{method:'POST',body:fd});
-    const jd=await r.json();if(jd.error)throw new Error(jd.error);
-    await attachJDById(jd.id);
-  }catch(e){showErr(e.message);}
-}
-async function attachJDExisting(){
-  const id=Number(document.getElementById('attach-jd-existing').value);
-  if(!id)return showErr('Select a job first.');
-  try{await attachJDById(id);}catch(e){showErr(e.message);}
-}
-document.getElementById('attach-jd-file').addEventListener('change',function(){
-  const el=document.getElementById('attach-jd-fn');
-  el.textContent=this.files[0]?'✓ '+this.files[0].name:'';
-  el.style.display=this.files[0]?'block':'none';
-});
-document.querySelectorAll('#attach-veil .tab').forEach(tab=>tab.addEventListener('click',()=>{
-  document.querySelectorAll('#attach-veil .tab').forEach(t=>t.classList.remove('active'));
-  tab.classList.add('active');
-  document.querySelectorAll('#attach-veil .tab-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById(tab.dataset.p).classList.add('active');
-}));
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){closeAttach();closeNewChat();}
-  if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='TEXTAREA'&&currentView==='chats'){e.preventDefault();document.getElementById('chat-search').focus();}
-});
-// ── Tailor inside a chat ──
-const MODELS={claude:[{v:"claude-opus-4-5",l:"Claude Opus 4.5"},{v:"claude-sonnet-4-6",l:"Claude Sonnet 4.6"},{v:"claude-haiku-4-5-20251001",l:"Claude Haiku 4.5"}],
-  gemini:[{v:"gemini-2.5-flash",l:"Gemini 2.5 Flash"},{v:"gemini-2.5-flash-lite",l:"Gemini 2.5 Flash-Lite"},{v:"gemini-2.5-pro",l:"Gemini 2.5 Pro"}]};
-function tailorModels(){const p=document.getElementById('t-provider').value;
-  document.getElementById('t-model').innerHTML=MODELS[p].map(m=>`<option value="${m.v}">${m.l}</option>`).join('');
-  const k=p==='claude'?'__ANTHROPIC_KEY__':'__GEMINI_KEY__';
-  document.getElementById('t-apikey').value=k.startsWith('__')?'':k;
-  document.getElementById('provider-note').textContent=p==='claude'
-    ?'Needs an Anthropic key — see anthropic.com dashboard.'
-    :'Needs a Google AI key — see aistudio.google.com.';}
-function chatTailorForm(){
-  if(!currentChat?.jd_id)return showErr('Attach a JD to this chat first.');
-  document.getElementById('chat-tailor').innerHTML=
-    `<div class="row-2" style="margin-top:12px"><div><div class="field-label"><label for="t-provider">Provider</label></div>`+
-    `<select id="t-provider" onchange="tailorModels()"><option value="claude">Claude</option><option value="gemini">Gemini</option></select></div>`+
-    `<div><div class="field-label"><label for="t-model">Model</label></div><select id="t-model"></select></div></div>`+
-    `<div class="field-label"><label for="t-apikey">API Key</label></div><div class="key-wrap"><input type="password" id="t-apikey" placeholder="Paste API key (or leave blank for server .env key)">`+
-    `<button class="key-toggle" aria-label="Show key" onclick="const i=document.getElementById('t-apikey');i.type=i.type==='password'?'text':'password'">👁</button></div>`+
-    `<div class="muted" id="provider-note"></div>`+
-    `<div class="muted">Only knapsack-selected facts are sent to the model. Unsupported claims are blocked before PDF export.</div>`+
-    `<button class="btn-go" onclick="chatTailor()">Tailor PDFs for this application →</button><div id="t-prog"></div><div id="t-out"></div>`;
-  tailorModels();
-}
-const TAILOR_STEPS=['Reading JD + resume facts','Company context','Tailoring resume','Cover letter','Building PDFs'];
-async function chatTailor(){
-  const provider=document.getElementById('t-provider').value;
-  const model=document.getElementById('t-model').value;
-  const apiKey=document.getElementById('t-apikey').value.trim();
-  if(!apiKey&&!confirm('No API key — try server-side keys from .env?'))return;
-  const prog=document.getElementById('t-prog'),out=document.getElementById('t-out');
-  prog.innerHTML='<div class="prog-card"><div class="prog-title">Tailoring…</div><ul class="steps">'+TAILOR_STEPS.map((s,i)=>`<li class="step${i===0?' active':''}" id="ts-${i}"><span class="dot-s"></span>${s}</li>`).join('')+'</ul></div>';out.innerHTML='';
-  const mark=n=>{TAILOR_STEPS.forEach((_,i)=>{const el=document.getElementById('ts-'+i);if(el)el.className='step'+(i<n?' done':i===n?' active':'');});};
-  try{
-    const [jd,facts]=await Promise.all([api(`/api/chats/${chatId}`).then(c=>api(`/api/jds/${c.jd_id}`)),api(`/api/profile/${profileId}/facts`)]);
-    if(!facts.length)throw new Error('Profile has no facts — add some in step 2.');
-    mark(1);
-    const fd=new FormData();fd.append('provider',provider);fd.append('model',model);fd.append('api_key',apiKey);
-    fd.append('profile_id',String(profileId));fd.append('jd_id',String(currentChat.jd_id));
-    fd.append('job_text',jd.raw_text);fd.append('resume_text',facts.map(f=>`[${f.section}] ${f.content}`).join('\n'));
-    const {job_id}=await (await fetch('/api/tailor',{method:'POST',body:fd})).json().then(b=>{if(b.error)throw new Error(b.error);return b;});
-    mark(2);
-    const st=await new Promise((resolve,reject)=>{
-      const iv=setInterval(async()=>{try{
-        const s=await api(`/api/status/${job_id}`);
-        mark(Math.min(4,s.step??0));
-        if(s.status==='done'){clearInterval(iv);resolve(s);}
-        else if(s.status==='error'){clearInterval(iv);reject(new Error(s.error||'Tailoring failed'));}
-      }catch(e){clearInterval(iv);reject(e);}},1500);});
-    mark(4);
-    prog.innerHTML='';
-    out.innerHTML=`<div class="callout ok">✅ Tailored for <strong>${esc(st.job_title||'')}</strong>${st.company?' @ '+esc(st.company):''} — posted to this timeline ↓</div>`+
-      `<div class="dl-grid"><a class="dl-card" href="/api/download/${job_id}/resume" download><div class="dl-label">📄 Tailored Resume</div><div class="dl-cta">↓ Download PDF</div></a>`+
-      `<a class="dl-card" href="/api/download/${job_id}/cover" download><div class="dl-label">✉️ Cover Letter</div><div class="dl-cta">↓ Download PDF</div></a></div>`;
-    hideErr();toast('PDFs ready','ok');
-    await loadThreads();openChat(chatId,true);
-  }catch(e){prog.innerHTML='';showErr(e.message);}
-}
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        font-size: 15px;
+        line-height: 1.55;
+        min-height: 100vh;
+      }
+      .wrap {
+        max-width: 1020px;
+        margin: 0 auto;
+        padding: 0 24px 90px;
+      }
+      /* header */
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 18px 0 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .topbar .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--faint);
+      }
+      .topbar.live .dot {
+        background: var(--ok);
+        box-shadow: 0 0 0 4px var(--ok-soft);
+      }
+      .topbar.down .dot {
+        background: var(--err);
+        box-shadow: 0 0 0 4px var(--err-soft);
+      }
+      header.hero {
+        padding: 26px 0 22px;
+        border-bottom: 2px solid var(--ink);
+        margin-bottom: 22px;
+      }
+      .eyebrow {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 10px;
+      }
+      h1 {
+        font-family: "Fraunces", Georgia, serif;
+        font-size: clamp(30px, 4.4vw, 46px);
+        line-height: 1.08;
+        letter-spacing: -0.01em;
+      }
+      h1 em {
+        font-style: italic;
+        color: var(--accent);
+      }
+      .subtitle {
+        margin-top: 10px;
+        color: var(--muted);
+        max-width: 640px;
+        font-size: 14.5px;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 14px;
+        padding: 6px 14px;
+        border-radius: 100px;
+        font-size: 12px;
+        font-weight: 500;
+        background: var(--surface);
+        border: 1px solid var(--border-strong);
+        color: var(--muted);
+      }
+      .badge.live {
+        border-color: var(--ok);
+        color: var(--ok);
+      }
+      .badge.down {
+        border-color: var(--err);
+        color: var(--err);
+      }
+      /* stepper — the primary wayfinding */
+      .stepper {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 22px;
+      }
+      .step-tab {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        text-align: left;
+        background: var(--surface);
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius);
+        padding: 14px 16px;
+        cursor: pointer;
+        box-shadow: var(--shadow);
+        font-family: inherit;
+      }
+      .step-tab .n {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--surface2);
+        border: 1px solid var(--border-strong);
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+      .step-tab .t {
+        font-size: 13.5px;
+        font-weight: 600;
+      }
+      .step-tab .d {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .step-tab.active {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+      .step-tab.active .n {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .step-tab.done .n {
+        background: var(--ok);
+        border-color: var(--ok);
+        color: #fff;
+      }
+      .step-tab:focus-visible,
+      .btn-go:focus-visible,
+      .btn-line:focus-visible,
+      .btn-primary:focus-visible,
+      .tab:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible {
+        outline: 2.5px solid var(--accent);
+        outline-offset: 2px;
+      }
+      /* cards */
+      .view {
+        display: none;
+      }
+      .view.active {
+        display: block;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        margin-bottom: 18px;
+        box-shadow: var(--shadow);
+      }
+      .card-title {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .card-sub {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin-bottom: 16px;
+      }
+      .section-label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0 0 10px;
+      }
+      .row-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+      @media (max-width: 560px) {
+        .row-2 {
+          grid-template-columns: 1fr;
+        }
+        .stepper {
+          grid-template-columns: 1fr;
+        }
+      }
+      .field-label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        background: #fff;
+        border: 1.5px solid var(--border-strong);
+        border-radius: 8px;
+        padding: 11px 14px;
+        color: var(--ink);
+        font-family: inherit;
+        font-size: 14px;
+        outline: none;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+      }
+      input:focus,
+      select:focus,
+      textarea:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+      textarea {
+        min-height: 130px;
+        line-height: 1.6;
+        resize: vertical;
+      }
+      ::placeholder {
+        color: var(--faint);
+      }
+      /* buttons — one primary per screen */
+      .btn-go {
+        width: 100%;
+        padding: 14px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 15.5px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+      .btn-go:hover {
+        background: var(--accent-ink);
+      }
+      .btn-go:disabled {
+        background: var(--border-strong);
+        cursor: not-allowed;
+      }
+      .btn-primary {
+        padding: 11px 20px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 13.5px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .btn-primary:hover {
+        background: var(--accent-ink);
+      }
+      .btn-line {
+        width: 100%;
+        padding: 11px;
+        background: #fff;
+        border: 1.5px solid var(--border-strong);
+        border-radius: 8px;
+        color: var(--ink);
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+      .btn-line:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .btn-line:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .btn-line.danger:hover {
+        border-color: var(--err);
+        color: var(--err);
+      }
+      .flex-row {
+        display: flex;
+        gap: 10px;
+      }
+      .flex-row .btn-line {
+        margin-top: 0;
+      }
+      /* tabs */
+      .tabs {
+        display: flex;
+        gap: 4px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 4px;
+        margin-bottom: 16px;
+        width: fit-content;
+        max-width: 100%;
+        flex-wrap: wrap;
+      }
+      .tab {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 7px 16px;
+        border-radius: 6px;
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .tab.active {
+        background: #fff;
+        color: var(--ink);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+      }
+      .tab-panel {
+        display: none;
+      }
+      .tab-panel.active {
+        display: block;
+      }
+      /* dropzone */
+      .dropzone {
+        border: 2px dashed var(--border-strong);
+        border-radius: 8px;
+        padding: 28px;
+        text-align: center;
+        cursor: pointer;
+        position: relative;
+        background: #fbfcfe;
+      }
+      .dropzone:hover,
+      .dropzone.over {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+      }
+      .dropzone input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: none;
+      }
+      .dz-icon {
+        font-size: 26px;
+        margin-bottom: 8px;
+      }
+      .dz-label {
+        font-size: 13.5px;
+        color: var(--muted);
+      }
+      .dz-label strong {
+        color: var(--accent);
+      }
+      .dz-hint {
+        font-size: 11px;
+        color: var(--faint);
+        margin-top: 5px;
+      }
+      .file-ok {
+        margin-top: 10px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ok);
+        display: none;
+      }
+      /* profiles */
+      .pgrid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 12px;
+      }
+      .pcard {
+        background: #fff;
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius);
+        padding: 18px;
+        cursor: pointer;
+        box-shadow: var(--shadow);
+      }
+      .pcard:hover {
+        border-color: var(--accent);
+      }
+      .pcard.sel {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+      .pcard h3 {
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .pcard .meta {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+      .pcard .go {
+        margin-top: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ok);
+      }
+      .pcard.sel .go {
+        color: var(--accent);
+      }
+      /* facts */
+      .filter-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 14px 0 4px;
+      }
+      .fchip {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 5px 13px;
+        border-radius: 100px;
+        border: 1.5px solid var(--border-strong);
+        background: #fff;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .fchip.active {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: #fff;
+      }
+      .facts {
+        list-style: none;
+        margin-top: 12px;
+        max-height: 360px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .facts li {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 13.5px;
+        background: #fbfcfe;
+      }
+      .facts .sec {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--violet);
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        white-space: nowrap;
+        padding: 3px 8px;
+        background: var(--violet-soft);
+        border-radius: 100px;
+      }
+      .facts .star {
+        color: var(--warn);
+        font-size: 13px;
+        border: none;
+        background: none;
+        cursor: pointer;
+        padding: 0 2px;
+      }
+      .facts .body {
+        flex: 1;
+        min-width: 0;
+      }
+      .facts .edit-box {
+        width: 100%;
+        margin-top: 6px;
+        font-size: 13px;
+        padding: 8px 10px;
+      }
+      .facts .mini {
+        border: none;
+        background: none;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+      .facts .mini:hover {
+        color: var(--accent);
+        background: var(--accent-soft);
+      }
+      .facts .mini.del:hover {
+        color: var(--err);
+        background: var(--err-soft);
+      }
+      .facts li.dropped {
+        opacity: 0.6;
+        border-style: dashed;
+      }
+      .muted {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 10px;
+        line-height: 1.7;
+      }
+      /* chips / bars / scorecard */
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 10px;
+      }
+      .chip {
+        font-size: 11.5px;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 100px;
+        border: 1.5px solid var(--border-strong);
+        color: var(--muted);
+        background: #fff;
+      }
+      .chip.req {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-soft);
+      }
+      .chip.nice {
+        border-color: var(--ok);
+        color: var(--ok);
+        background: var(--ok-soft);
+      }
+      .chip.miss {
+        border-color: var(--warn);
+        color: var(--warn);
+        background: var(--warn-soft);
+      }
+      .chip.role {
+        background: var(--ink);
+        color: #fff;
+        border-color: var(--ink);
+      }
+      .scorecard {
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-top: 12px;
+      }
+      .scorecard .sc-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        background: var(--surface2);
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .score-grade {
+        width: 38px;
+        height: 38px;
+        border-radius: 9px;
+        background: var(--ink);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .score-grade.good {
+        background: var(--ok);
+      }
+      .score-grade.mid {
+        background: var(--warn);
+      }
+      .score-grade.low {
+        background: var(--err);
+      }
+      .bar-row {
+        padding: 10px 16px;
+        border-top: 1px solid var(--border);
+      }
+      .bar-head {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .bar-head .pct {
+        color: var(--muted);
+      }
+      .bar {
+        height: 9px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 100px;
+        overflow: hidden;
+      }
+      .bar > div {
+        height: 100%;
+        background: var(--ok);
+        transition: width 0.4s;
+      }
+      .bar.mid > div {
+        background: var(--warn);
+      }
+      .bar.low > div {
+        background: var(--err);
+      }
+      .callout {
+        margin-top: 12px;
+        padding: 13px 15px;
+        border: 1.5px solid var(--warn);
+        background: var(--warn-soft);
+        border-radius: 8px;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .callout.ok {
+        border-color: var(--ok);
+        background: var(--ok-soft);
+      }
+      .callout.err {
+        border-color: var(--err);
+        background: var(--err-soft);
+      }
+      .legend {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      .legend span {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 11px;
+        border-radius: 100px;
+      }
+      .lg-v {
+        background: var(--ok-soft);
+        color: var(--ok);
+        border: 1px solid var(--ok);
+      }
+      .lg-i {
+        background: var(--warn-soft);
+        color: var(--warn);
+        border: 1px solid var(--warn);
+      }
+      .lg-u {
+        background: var(--err-soft);
+        color: var(--err);
+        border: 1px solid var(--err);
+      }
+      /* chat layout */
+      .chat-shell {
+        display: flex;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        min-height: 600px;
+        background: #fff;
+        box-shadow: var(--shadow);
+      }
+      .side {
+        width: 290px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        background: #fbfcfe;
+      }
+      .side-head {
+        padding: 14px;
+        border-bottom: 1px solid var(--border);
+      }
+      .side-head input {
+        margin-top: 10px;
+      }
+      .thread-list {
+        flex: 1;
+        overflow-y: auto;
+        max-height: 640px;
+      }
+      .thread {
+        padding: 13px 14px;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        display: flex;
+        gap: 11px;
+        background: #fff;
+      }
+      .thread:hover {
+        background: var(--accent-soft);
+      }
+      .thread.active {
+        background: var(--accent-soft);
+        box-shadow: inset 3px 0 0 var(--accent);
+      }
+      .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--ink);
+        color: #fff;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        flex-shrink: 0;
+      }
+      .thread.active .avatar {
+        background: var(--accent);
+      }
+      .thread .tt {
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .thread .ts {
+        font-size: 11px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 2px;
+      }
+      .thread .tm {
+        margin-left: auto;
+        font-size: 10px;
+        color: var(--faint);
+        flex-shrink: 0;
+      }
+      .thread .flag {
+        background: var(--warn-soft);
+        color: var(--warn);
+        border: 1px solid var(--warn);
+        font-size: 9.5px;
+        font-weight: 700;
+        padding: 1px 8px;
+        border-radius: 100px;
+        margin-top: 5px;
+        display: inline-block;
+      }
+      .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .chat-head {
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--surface2);
+      }
+      .chat-head .tt {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .chat-head .ts {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .chat-head .acts {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+      }
+      .icon-btn {
+        background: #fff;
+        border: 1.5px solid var(--border-strong);
+        border-radius: 7px;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 11.5px;
+        font-weight: 600;
+        padding: 7px 12px;
+        font-family: inherit;
+      }
+      .icon-btn:hover {
+        border-color: var(--err);
+        color: var(--err);
+      }
+      .timeline {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-height: 560px;
+        background: #fff;
+        background-image: radial-gradient(var(--border) 1px, transparent 1px);
+        background-size: 22px 22px;
+      }
+      .bubble {
+        max-width: 88%;
+        padding: 13px 16px;
+        border-radius: 14px;
+        font-size: 13.5px;
+        line-height: 1.6;
+        background: #fff;
+        border: 1.5px solid var(--border);
+        box-shadow: var(--shadow);
+      }
+      .bubble.in {
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+      }
+      .bubble.out {
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+        border-color: var(--accent);
+        background: #f5f9ff;
+      }
+      .bubble .who {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 6px;
+      }
+      .bubble.out .who {
+        color: var(--accent-ink);
+      }
+      .bubble .time {
+        font-size: 10.5px;
+        color: var(--faint);
+        margin-top: 8px;
+        text-align: right;
+      }
+      .composer {
+        border-top: 1px solid var(--border);
+        padding: 14px 16px;
+        background: var(--surface2);
+      }
+      .composer .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .composer .btn-line {
+        width: auto;
+        margin-top: 0;
+        flex: 1;
+        min-width: 130px;
+      }
+      .composer .btn-primary {
+        flex: 1.4;
+        min-width: 170px;
+        padding: 11px;
+      }
+      .empty-chat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+        gap: 10px;
+        text-align: center;
+        padding: 44px;
+      }
+      .empty-chat .big {
+        font-size: 42px;
+      }
+      /* modal + toast + progress */
+      .modal-veil {
+        position: fixed;
+        inset: 0;
+        background: rgba(16, 32, 54, 0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+        padding: 20px;
+      }
+      .modal-veil.open {
+        display: flex;
+      }
+      .modal {
+        background: #fff;
+        border-radius: 14px;
+        padding: 26px;
+        max-width: 560px;
+        width: 100%;
+        max-height: 86vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+      }
+      #prog {
+        display: none;
+        margin-top: 16px;
+      }
+      .prog-card {
+        background: #fff;
+        border: 1.5px solid var(--accent);
+        border-radius: var(--radius);
+        padding: 20px;
+      }
+      .prog-title {
+        font-family: "Fraunces", Georgia, serif;
+        font-size: 18px;
+        margin-bottom: 12px;
+      }
+      .steps {
+        list-style: none;
+      }
+      .step {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .step:last-child {
+        border-bottom: none;
+      }
+      .step.done {
+        color: var(--ink);
+      }
+      .step.active {
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .dot-s {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--border-strong);
+        flex-shrink: 0;
+      }
+      .step.done .dot-s {
+        background: var(--ok);
+      }
+      .step.active .dot-s {
+        background: var(--accent);
+        box-shadow: 0 0 0 4px var(--accent-soft);
+        animation: pulse 1s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+      .dl-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 12px;
+      }
+      @media (max-width: 520px) {
+        .dl-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .dl-card {
+        background: #fff;
+        border: 1.5px solid var(--ok);
+        border-radius: 9px;
+        padding: 14px;
+        text-decoration: none;
+        display: block;
+        color: var(--ink);
+      }
+      .dl-card:hover {
+        background: var(--ok-soft);
+      }
+      .dl-label {
+        font-size: 13.5px;
+        font-weight: 600;
+      }
+      .dl-cta {
+        margin-top: 6px;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--ok);
+      }
+      .err {
+        background: var(--err-soft);
+        border: 1.5px solid var(--err);
+        border-radius: var(--radius);
+        padding: 13px 18px;
+        color: var(--err);
+        font-size: 13px;
+        font-weight: 500;
+        display: none;
+        margin-bottom: 18px;
+      }
+      .toast-wrap {
+        position: fixed;
+        bottom: 22px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 99;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+      }
+      .toast {
+        background: var(--ink);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 11px 20px;
+        border-radius: 100px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        animation: tin 0.25s ease;
+      }
+      .toast.ok {
+        background: var(--ok);
+      }
+      .toast.bad {
+        background: var(--err);
+      }
+      @keyframes tin {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      .key-wrap {
+        position: relative;
+      }
+      .key-toggle {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 15px;
+        padding: 6px;
+      }
+      .howto {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+      .howto div {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+      .howto strong {
+        display: block;
+        color: var(--ink);
+        font-size: 12.5px;
+        margin-bottom: 2px;
+      }
+      @media (max-width: 640px) {
+        .howto {
+          grid-template-columns: 1fr;
+        }
+      }
+      footer {
+        margin-top: 56px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-strong);
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .fl,
+      .fr {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .fr a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .spin {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border: 2px solid var(--border-strong);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: sp 0.7s linear infinite;
+        vertical-align: -2px;
+        margin-right: 8px;
+      }
+      @keyframes sp {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+      }
+      @media (max-width: 860px) {
+        .chat-shell {
+          flex-direction: column;
+        }
+        .side {
+          width: 100%;
+          border-right: none;
+          border-bottom: 1px solid var(--border);
+        }
+        .thread-list {
+          max-height: 220px;
+        }
+        .timeline {
+          max-height: none;
+          min-height: 320px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="topbar down" id="topbar">
+        <span class="dot" aria-hidden="true"></span
+        ><span id="backend-badge">Connecting to local backend…</span>
+      </div>
 
-// ── Boot ──
-(async function boot(){
-  try{
-    await loadProfiles();
-    backendMode=true;
-    setBadge(true,'● Backend connected · 1 profile : N JD chats');
-    document.getElementById('foot-status').textContent='connected ✓';
-    if(profileId){const ps=await api('/api/profiles').then(ps=>ps.find(p=>p.id===profileId));profileName=ps?ps.name:'';go('chats');}
-  }catch(e){
-    backendMode=false;
-    setBadge(false,'○ Backend offline — run `python app.py`, then reload');
-    document.getElementById('foot-status').textContent='offline — start `python app.py`';
-  }
-})();
-</script>
-</body>
+      <header class="hero">
+        <div class="eyebrow">KnapResume · Local-first pipeline</div>
+        <h1>Knapsack resume<br /><em>tailoring</em>, verified</h1>
+        <p class="subtitle">
+          One profile, many applications — each job description gets its own
+          thread: structured JD, knapsack allocation, gap feedback and tailored
+          PDFs, 1 : N from profile to JD. Unsupported claims never reach your
+          PDF.
+        </p>
+        <div class="legend" aria-label="Verification states">
+          <span class="lg-v">Verified — backed by a cited fact</span>
+          <span class="lg-i">Inferred — plausible, review it</span>
+          <span class="lg-u">Unsupported — blocked from export</span>
+        </div>
+      </header>
+
+      <div class="err" id="err" role="alert" aria-live="assertive"></div>
+
+      <div class="howto" aria-label="How it works">
+        <div>
+          <strong>1 · Profile</strong>Create once, reuse for every application.
+          Facts persist locally.
+        </div>
+        <div>
+          <strong>2 · Facts</strong>Ingest a resume, curate ★ mandatory facts
+          the knapsack may never drop.
+        </div>
+        <div>
+          <strong>3 · Apply</strong>One chat per job: analyse gaps, inspect
+          allocation, tailor PDFs.
+        </div>
+      </div>
+
+      <nav class="stepper" aria-label="Workflow steps">
+        <button
+          class="step-tab active"
+          id="tab-profiles"
+          onclick="go('profiles')"
+        >
+          <span class="n">1</span
+          ><span
+            ><span class="t">Profile</span>
+            <div class="d">Create or pick up a profile</div></span
+          >
+        </button>
+        <button class="step-tab" id="tab-facts" onclick="go('facts')">
+          <span class="n">2</span
+          ><span
+            ><span class="t">Facts</span>
+            <div class="d">Ingest resume · curate truth</div></span
+          >
+        </button>
+        <button class="step-tab" id="tab-chats" onclick="go('chats')">
+          <span class="n">3</span
+          ><span
+            ><span class="t">Applications</span>
+            <div class="d">Chats · one thread per JD</div></span
+          >
+        </button>
+      </nav>
+
+      <!-- ══ VIEW 1 · PROFILES ══ -->
+      <section class="view active" id="view-profiles" aria-label="Profiles">
+        <div class="section-label">
+          Step 1 — Build a profile, or pick up where you left off
+        </div>
+        <div class="card">
+          <div class="card-title">New profile</div>
+          <div class="card-sub">
+            A profile is your source of truth. All tailored resumes cite back to
+            its facts.
+          </div>
+          <div class="flex-row">
+            <label class="sr" for="profile-name">Profile name</label>
+            <input
+              id="profile-name"
+              placeholder="e.g. Alice — Backend Engineer"
+              onkeydown="if (event.key === 'Enter') createProfile();"
+            />
+            <button class="btn-primary" onclick="createProfile()">
+              Create →
+            </button>
+          </div>
+        </div>
+        <div class="section-label">Existing profiles</div>
+        <div class="pgrid" id="profile-grid"></div>
+      </section>
+
+      <!-- ══ VIEW 2 · FACTS ══ -->
+      <section class="view" id="view-facts" aria-label="Facts">
+        <div class="section-label">
+          Step 2 — Facts for <span id="facts-pname">…</span>
+        </div>
+        <div class="card">
+          <div class="card-title">Ingest a resume, then curate the facts</div>
+          <div class="card-sub">
+            ★ mandatory facts are pinned — the knapsack allocator always keeps
+            them, even over budget.
+          </div>
+          <div class="tabs" id="rtabs" role="tablist">
+            <button type="button" class="tab active" data-p="rp-file">
+              Upload file
+            </button>
+            <button type="button" class="tab" data-p="rp-text">
+              Paste text
+            </button>
+            <button type="button" class="tab" data-p="rp-add">Add fact</button>
+          </div>
+          <div class="tab-panel active" id="rp-file">
+            <div class="dropzone">
+              <input
+                type="file"
+                id="res-file"
+                accept=".pdf,.docx,.txt,.md"
+                aria-label="Resume file"
+              />
+              <div class="dz-icon" aria-hidden="true">📄</div>
+              <div class="dz-label">
+                <strong>Click to upload</strong> or drag &amp; drop
+              </div>
+              <div class="dz-hint">
+                PDF · DOCX · TXT · MD — parsed server-side
+              </div>
+              <div class="file-ok" id="rfn"></div>
+            </div>
+            <button class="btn-line" onclick="ingestFile()">
+              Ingest into this profile
+            </button>
+          </div>
+          <div class="tab-panel" id="rp-text">
+            <label class="sr" for="res-text">Resume text</label>
+            <textarea
+              id="res-text"
+              placeholder="Paste your full resume text here..."
+            ></textarea>
+            <button class="btn-line" onclick="ingestText()">
+              Ingest into this profile
+            </button>
+          </div>
+          <div class="tab-panel" id="rp-add">
+            <div class="row-2">
+              <div>
+                <div class="field-label">
+                  <label for="fact-section">Section</label>
+                </div>
+                <input id="fact-section" placeholder="experience" />
+              </div>
+              <div>
+                <div class="field-label">
+                  <label for="fact-mandatory">Mandatory (never dropped)</label>
+                </div>
+                <select id="fact-mandatory">
+                  <option value="">auto</option>
+                  <option value="true">true</option>
+                  <option value="false">false</option>
+                </select>
+              </div>
+            </div>
+            <label class="sr" for="fact-content">Fact content</label>
+            <textarea
+              id="fact-content"
+              style="min-height: 80px"
+              placeholder="One verifiable statement, e.g. Built Python microservices serving 40k req/day..."
+            ></textarea>
+            <button class="btn-line" onclick="addFact()">Add fact</button>
+          </div>
+          <div
+            class="filter-row"
+            id="fact-filters"
+            aria-label="Filter facts by section"
+          ></div>
+          <ul class="facts" id="facts"></ul>
+          <div class="muted" id="facts-meta"></div>
+          <button class="btn-go" onclick="go('chats')">
+            Open applications for this profile →
+          </button>
+        </div>
+      </section>
+
+      <!-- ══ VIEW 3 · APPLICATION CHATS ══ -->
+      <section class="view" id="view-chats" aria-label="Applications">
+        <div class="section-label">
+          Step 3 — One chat per job · <span id="chats-pname">…</span>
+        </div>
+        <div class="chat-shell">
+          <aside class="side" aria-label="Application threads">
+            <div class="side-head">
+              <button
+                class="btn-primary"
+                style="width: 100%"
+                onclick="openNewChat()"
+              >
+                ＋ New application
+              </button>
+              <label class="sr" for="chat-search">Search applications</label>
+              <input
+                id="chat-search"
+                placeholder="Search applications…"
+                oninput="renderThreads()"
+              />
+            </div>
+            <div class="thread-list" id="thread-list"></div>
+          </aside>
+          <div class="main" id="chat-main">
+            <div class="empty-chat">
+              <div class="big" aria-hidden="true">💼</div>
+              <div>
+                <strong>Pick an application, or start a new one.</strong
+                ><br />Each chat is one JD threaded under this profile — with
+                gap analysis, allocation and PDFs.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <div class="fl">KNAPRESUME · 1 PROFILE : N JD CHATS · LOCAL-FIRST</div>
+        <div class="fr">
+          Local backend <span id="foot-status">…</span> ·
+          <a href="./privacy.html">Privacy Policy</a>
+        </div>
+      </footer>
+    </div>
+
+    <!-- New-application modal -->
+    <div class="modal-veil" id="newchat-veil">
+      <div
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="New application"
+      >
+        <div class="card-title">New application</div>
+        <div class="card-sub">
+          Paste a job description — it will be structured &amp; attached. Or
+          attach an existing one.
+        </div>
+        <div class="field-label">
+          <label for="newchat-jd">Job description text</label>
+        </div>
+        <textarea
+          id="newchat-jd"
+          placeholder="Paste the full job description..."
+        ></textarea>
+        <div class="field-label" style="margin-top: 12px">
+          <label for="newchat-existing">…or an already-structured job</label>
+        </div>
+        <select id="newchat-existing">
+          <option value="">— none —</option>
+        </select>
+        <button class="btn-go" onclick="createChat()">
+          Create application →
+        </button>
+        <button class="btn-line" onclick="closeNewChat()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Attach-JD modal -->
+    <div class="modal-veil" id="attach-veil">
+      <div
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Attach a job description"
+      >
+        <div class="card-title">Attach a job description</div>
+        <div class="card-sub">
+          Structured into required / nice-to-have skills with role
+          classification.
+        </div>
+        <div class="tabs">
+          <button type="button" class="tab active" data-p="ap-text">
+            Paste text
+          </button>
+          <button type="button" class="tab" data-p="ap-file">
+            Drop a file
+          </button>
+          <button type="button" class="tab" data-p="ap-existing">
+            Existing job
+          </button>
+        </div>
+        <div class="tab-panel active" id="ap-text">
+          <label class="sr" for="attach-jd-text">Job description text</label>
+          <textarea
+            id="attach-jd-text"
+            placeholder="Paste the full job description..."
+          ></textarea>
+          <button class="btn-go" onclick="attachJDText()">
+            Structure &amp; attach →
+          </button>
+        </div>
+        <div class="tab-panel" id="ap-file">
+          <div class="dropzone">
+            <input
+              type="file"
+              id="attach-jd-file"
+              accept=".pdf,.docx,.txt,.md"
+              aria-label="Job description file"
+            />
+            <div class="dz-icon" aria-hidden="true">📋</div>
+            <div class="dz-label">
+              <strong>Click to upload</strong> or drag &amp; drop
+            </div>
+            <div class="dz-hint">
+              PDF · DOCX · TXT · MD — parsed server-side
+            </div>
+            <div class="file-ok" id="attach-jd-fn"></div>
+          </div>
+          <button class="btn-go" onclick="attachJDFile()">
+            Upload &amp; attach →
+          </button>
+        </div>
+        <div class="tab-panel" id="ap-existing">
+          <div class="field-label">
+            <label for="attach-jd-existing">Already-structured jobs</label>
+          </div>
+          <select id="attach-jd-existing">
+            <option value="">— none —</option>
+          </select>
+          <button class="btn-go" onclick="attachJDExisting()">
+            Attach selected →
+          </button>
+        </div>
+        <button class="btn-line" onclick="closeAttach()">Cancel</button>
+      </div>
+    </div>
+
+    <div class="toast-wrap" id="toasts" aria-live="polite"></div>
+
+    <script>
+      // ── State + client ──
+      let backendMode = false,
+        profileId = Number(localStorage.getItem("knap.profileId")) || null;
+      let profileName = "",
+        chatId = Number(localStorage.getItem("knap.chatId")) || null;
+      let threads = [],
+        currentChat = null,
+        currentView = "profiles",
+        factFilter = "all",
+        allFacts = [];
+
+      async function api(path, opts = {}) {
+        const r = await fetch(path, opts);
+        const b = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(b.error || "HTTP " + r.status);
+        return b;
+      }
+      const postJSON = (p, d) =>
+        api(p, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(d),
+        });
+      const esc = (s) =>
+        String(s ?? "").replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      const shortTime = (s) => {
+        if (!s) return "";
+        const d = new Date(s);
+        const t = new Date();
+        const same = d.toDateString() === t.toDateString();
+        return same
+          ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          : d.toLocaleDateString([], { month: "short", day: "numeric" });
+      };
+      function showErr(m) {
+        const e = document.getElementById("err");
+        e.textContent = "⚠ " + m;
+        e.style.display = "block";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      function hideErr() {
+        document.getElementById("err").style.display = "none";
+      }
+      function toast(m, kind) {
+        const w = document.getElementById("toasts");
+        const t = document.createElement("div");
+        t.className = "toast" + (kind ? " " + kind : "");
+        t.textContent = m;
+        w.appendChild(t);
+        setTimeout(() => t.remove(), 3200);
+      }
+      function setBadge(live, txt) {
+        const b = document.getElementById("backend-badge");
+        b.textContent = txt;
+        document.getElementById("topbar").className =
+          "topbar " + (live ? "live" : "down");
+        b.classList.toggle("live", !!live);
+        b.classList.toggle("down", !live);
+      }
+
+      // ── View router ──
+      function go(view) {
+        if (!backendMode) {
+          showErr("Backend offline — run `python app.py` first.");
+          return;
+        }
+        if (view !== "profiles" && !profileId) {
+          showErr("Pick or create a profile first (step 1).");
+          view = "profiles";
+        }
+        currentView = view;
+        document
+          .querySelectorAll(".view")
+          .forEach((v) => v.classList.remove("active"));
+        document.getElementById("view-" + view).classList.add("active");
+        document
+          .querySelectorAll(".step-tab")
+          .forEach((t) => t.classList.remove("active"));
+        document.getElementById("tab-" + view).classList.add("active");
+        document
+          .getElementById("tab-profiles")
+          .classList.toggle("done", !!profileId);
+        document
+          .getElementById("tab-facts")
+          .classList.toggle("done", view === "chats");
+        hideErr();
+        if (view === "facts") loadFacts();
+        if (view === "chats") loadThreads();
+      }
+
+      // ── Step 1 · Profiles ──
+      async function loadProfiles() {
+        const profiles = await api("/api/profiles");
+        if (profileId && !profiles.some((p) => p.id === profileId)) {
+          profileId = null;
+          localStorage.removeItem("knap.profileId");
+        }
+        const grid = document.getElementById("profile-grid");
+        grid.innerHTML =
+          profiles
+            .map(
+              (p) =>
+                `<div class="pcard${p.id === profileId ? " sel" : ""}" onclick="pickProfile(${p.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter')pickProfile(${p.id})"><h3>${esc(p.name)}</h3>` +
+                `<div class="meta">${p.fact_count} facts · #${p.id}<br>updated ${shortTime(p.updated_at)}</div>` +
+                `<div class="go">${p.id === profileId ? "● ACTIVE — open facts →" : "open →"}</div></div>`,
+            )
+            .join("") ||
+          '<div class="muted">No profiles yet — create your first one above.</div>';
+        const sel = profiles.find((p) => p.id === profileId);
+        profileName = sel ? sel.name : "";
+        document
+          .getElementById("tab-profiles")
+          .classList.toggle("done", !!profileId);
+      }
+      async function createProfile() {
+        const name =
+          document.getElementById("profile-name").value.trim() ||
+          "Default Profile";
+        try {
+          const p = await postJSON("/api/profile", { name });
+          document.getElementById("profile-name").value = "";
+          profileId = p.id;
+          localStorage.setItem("knap.profileId", profileId);
+          await loadProfiles();
+          hideErr();
+          toast("Profile created");
+          go("facts");
+        } catch (e) {
+          showErr(e.message);
+        }
+      }
+      async function pickProfile(id) {
+        profileId = id;
+        localStorage.setItem("knap.profileId", id);
+        chatId = null;
+        localStorage.removeItem("knap.chatId");
+        await loadProfiles();
+        go("facts");
+      }
+
+      // ── Step 2 · Facts ──
+      document.querySelectorAll("#view-facts .tabs").forEach((tabs) => {
+        tabs.querySelectorAll(".tab").forEach((tab) =>
+          tab.addEventListener("click", () => {
+            tabs
+              .querySelectorAll(".tab")
+              .forEach((t) => t.classList.remove("active"));
+            tab.classList.add("active");
+            tabs.parentElement
+              .querySelectorAll(".tab-panel")
+              .forEach((p) => p.classList.remove("active"));
+            document.getElementById(tab.dataset.p).classList.add("active");
+          }),
+        );
+      });
+      document
+        .getElementById("res-file")
+        .addEventListener("change", function () {
+          const el = document.getElementById("rfn");
+          el.textContent = this.files[0] ? "✓ " + this.files[0].name : "";
+          el.style.display = this.files[0] ? "block" : "none";
+        });
+      async function loadFacts() {
+        document.getElementById("facts-pname").textContent =
+          profileName || "profile #" + profileId;
+        if (!profileId) return;
+        try {
+          allFacts = await api(`/api/profile/${profileId}/facts`);
+          const secs = ["all", ...new Set(allFacts.map((f) => f.section))];
+          if (!secs.includes(factFilter)) factFilter = "all";
+          document.getElementById("fact-filters").innerHTML = secs
+            .map(
+              (s) =>
+                `<button class="fchip${s === factFilter ? " active" : ""}" onclick="setFactFilter('${esc(s)}')">${esc(s)} (${s === "all" ? allFacts.length : allFacts.filter((f) => f.section === s).length})</button>`,
+            )
+            .join("");
+          renderFacts();
+        } catch (e) {
+          showErr(e.message);
+        }
+      }
+      function setFactFilter(s) {
+        factFilter = s;
+        loadFacts();
+      }
+      function renderFacts() {
+        const list =
+          factFilter === "all"
+            ? allFacts
+            : allFacts.filter((f) => f.section === factFilter);
+        document.getElementById("facts").innerHTML =
+          list
+            .map(
+              (f) =>
+                `<li><span class="sec">${esc(f.section)}</span>` +
+                `<button class="star" title="Toggle mandatory — never dropped by knapsack" onclick="toggleMandatory(${f.id},${!f.is_mandatory})" aria-label="Toggle mandatory">${f.is_mandatory ? "★" : "☆"}</button>` +
+                `<span class="body">${esc(f.content)}<span id="edit-${f.id}"></span></span>` +
+                `<button class="mini" onclick="startEditFact(${f.id})">edit</button><button class="mini del" onclick="delFact(${f.id})" aria-label="Delete fact">✕</button></li>`,
+            )
+            .join("") ||
+          '<li style="opacity:.65">No facts in this section yet — ingest a resume or add one manually.</li>';
+        const mand = allFacts.filter((f) => f.is_mandatory).length;
+        document.getElementById("facts-meta").textContent =
+          `${allFacts.length} facts stored · ★ ${mand} mandatory = pinned by the knapsack · click ☆ to pin`;
+      }
+      let _editCache = {};
+      function startEditFact(fid) {
+        const f = allFacts.find((x) => x.id === fid);
+        if (!f) return;
+        _editCache[fid] = f.content;
+        document.getElementById("edit-" + fid).innerHTML =
+          `<textarea class="edit-box" id="editbox-${fid}">${esc(f.content)}</textarea>` +
+          `<div style="display:flex;gap:8px;margin-top:6px"><button class="mini" onclick="saveEditFact(${fid})">save</button>` +
+          `<button class="mini" onclick="cancelEditFact(${fid})">cancel</button></div>`;
+        document.getElementById("editbox-" + fid).focus();
+      }
+      function cancelEditFact(fid) {
+        document.getElementById("edit-" + fid).innerHTML = "";
+      }
+      async function saveEditFact(fid) {
+        const v = document.getElementById("editbox-" + fid).value.trim();
+        if (!v) return showErr("Fact text cannot be empty.");
+        try {
+          await api(`/api/fact/${fid}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content: v }),
+          });
+          hideErr();
+          toast("Fact updated", "ok");
+          await loadFacts();
+        } catch (e) {
+          showErr(e.message);
+        }
+      }
+      async function toggleMandatory(fid, val) {
+        try {
+          await api(`/api/fact/${fid}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ is_mandatory: val }),
+          });
+          await loadFacts();
+        } catch (e) {
+          showErr(e.message);
+        }
+      }
+      async function ingestFile() {
+        const f = document.getElementById("res-file").files[0];
+        if (!f) return showErr("Choose a resume file first.");
+        const fd = new FormData();
+        fd.append("resume_file", f);
+        try {
+          const r = await (
+            await fetch(`/api/profile/${profileId}/ingest`, {
+              method: "POST",
+              body: fd,
+            })
+          ).json();
+          if (r.error) throw new Error(r.error);
+          hideErr();
+          toast(`${r.facts_created || ""} facts ingested`.trim(), "ok");
+          await loadFacts();
+        } catch (e) {
+          showErr(e.message);
+        }
+      }
+      async function ingestText() {
+        const t = document.getElementById("res-text").value.trim();
+        if (!t) return showErr("Paste resume text first.");
+        try {
+          const r = await postJSON(`/api/profile/${profileId}/ingest`, {
+            resume_text: t,
+          });
+          hideErr();
+          toast("Resume ingested", "ok");
+          document.getElementById("res-text").value = "";
+          await loadFacts();
+        } catch (e) {
+          showErr(e.message);
+        }
+      }
+      async function addFact() {
+        const section = document.getElementById("fact-section").value.trim();
+        const content = document.getElementById("fact-content").value.trim();
+        const m = document.getElementById("fact-mandatory").value;
+        if (!section || !content)
+          return showErr("Section and content are required.");
+        const body = { section, content };
+        if (m) body.is_mandatory = m === "true";
+        try {
+          await postJSON(`/api/profile/${profileId}/facts`, body);
+          hideErr();
+          toast("Fact added", "ok");
+          document.getElementById("fact-content").value = "";
+          await loadFacts();
+        } catch (e) {
+          showErr(e.message);
+        }
+      }
+      async function delFact(fid) {
+        if (!confirm("Delete this fact?")) return;
+        try {
+          await api(`/api/fact/${fid}`, { method: "DELETE" });
+          await loadFacts();
+          toast("Fact deleted");
+        } catch (e) {
+          showErr(e.message);
+        }
+      }
+
+      // ── Step 3 · Application chats ──
+      async function loadThreads() {
+        document.getElementById("chats-pname").textContent =
+          profileName || "profile #" + profileId;
+        try {
+          threads = await api(`/api/profile/${profileId}/chats`);
+          if (chatId && !threads.some((t) => t.id === chatId)) {
+            chatId = null;
+            localStorage.removeItem("knap.chatId");
+          }
+          renderThreads();
+          if (chatId) openChat(chatId, true);
+          else
+            document.getElementById("chat-main").innerHTML =
+              `<div class="empty-chat"><div class="big">💼</div><div><strong>Pick an application, or start a new one.</strong><br>Each chat is one JD threaded under this profile.</div></div>`;
+        } catch (e) {
+          showErr(e.message);
+        }
+      }
+      function renderThreads() {
+        const q = (
+          document.getElementById("chat-search").value || ""
+        ).toLowerCase();
+        const list = threads.filter((t) =>
+          (t.title + " " + (t.company || "") + " " + (t.job_title || ""))
+            .toLowerCase()
+            .includes(q),
+        );
+        document.getElementById("thread-list").innerHTML =
+          list
+            .map((t) => {
+              const init = (
+                (t.company || t.title || "?")[0] || "?"
+              ).toUpperCase();
+              const sub = t.jd_id
+                ? `${esc(t.company || "")} · ${esc(t.job_title || "")}${t.role_type ? " · " + esc(t.role_type) : ""}`
+                : "No JD attached yet";
+              const flag =
+                t.latest_run && t.latest_run.weakest_section
+                  ? `<span class="flag">gap: ${esc(t.latest_run.weakest_section)}</span>`
+                  : t.latest_run
+                    ? `<span class="flag" style="background:var(--ok-soft);color:var(--ok);border-color:var(--ok)">✓ analysed</span>`
+                    : "";
+              return (
+                `<div class="thread${t.id === chatId ? " active" : ""}" onclick="openChat(${t.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openChat(${t.id})"><div class="avatar">${esc(init)}</div>` +
+                `<div style="min-width:0;flex:1"><div class="tt">${esc(t.title)}</div><div class="ts">${sub}</div>${flag}</div>` +
+                `<div class="tm">${shortTime(t.updated_at)}</div></div>`
+              );
+            })
+            .join("") ||
+          '<div class="muted" style="padding:16px">No applications yet — start one above.</div>';
+      }
+      function openNewChat() {
+        document.getElementById("newchat-jd").value = "";
+        api("/api/jds")
+          .then((jds) => {
+            document.getElementById("newchat-existing").innerHTML =
+              '<option value="">— none —</option>' +
+              jds
+                .map(
+                  (j) =>
+                    `<option value="${j.id}">#${j.id} ${esc(j.job_title || "Role")}${j.company ? " @ " + esc(j.company) : ""}</option>`,
+                )
+                .join("");
+          })
+          .catch(() => {});
+        document.getElementById("newchat-veil").classList.add("open");
+        setTimeout(() => document.getElementById("newchat-jd").focus(), 50);
+      }
+      function closeNewChat() {
+        document.getElementById("newchat-veil").classList.remove("open");
+      }
+      async function createChat() {
+        const text = document.getElementById("newchat-jd").value.trim();
+        const existing = document.getElementById("newchat-existing").value;
+        try {
+          let body = {};
+          if (text) body = { jd_text: text };
+          else if (existing) body = { jd_id: Number(existing) };
+          else body = { title: "Untitled application" };
+          const t = await postJSON(`/api/profile/${profileId}/chats`, body);
+          closeNewChat();
+          hideErr();
+          toast("Application created", "ok");
+          await loadThreads();
+          openChat(t.id);
+        } catch (e) {
+          showErr(e.message);
+        }
+      }
+      async function deleteChat(id) {
+        if (!confirm("Delete this chat? The JD and past runs are kept."))
+          return;
+        try {
+          await api(`/api/chats/${id}`, { method: "DELETE" });
+          if (chatId === id) {
+            chatId = null;
+            localStorage.removeItem("knap.chatId");
+          }
+          await loadThreads();
+          hideErr();
+          toast("Chat deleted");
+        } catch (e) {
+          showErr(e.message);
+        }
+      }
+      function coverageGrade(cov) {
+        if (cov == null) return "";
+        return cov >= 0.8 ? "" : " mid";
+      }
+      function scorecardHTML(fb) {
+        const secs = fb.sections || {};
+        const names = Object.keys(secs);
+        const cl = fb.ats_checklist || null;
+        if (!names.length && !cl)
+          return `<div class="muted">No gap data yet — run an analysis.</div>`;
+        let grade, gcls, avg;
+        if (cl) {
+          grade = cl.grade;
+          avg = cl.coverage ?? 0;
+          gcls = avg >= 0.6 ? "good" : avg >= 0.4 ? "mid" : "low";
+        } else {
+          let covs = names.map((s) => secs[s].coverage ?? 0);
+          avg = names.length
+            ? covs.reduce((a, b) => a + b, 0) / covs.length
+            : 0;
+          grade = avg >= 0.8 ? "A" : avg >= 0.6 ? "B" : avg >= 0.4 ? "C" : "D";
+          gcls = avg >= 0.6 ? "good" : avg >= 0.4 ? "mid" : "low";
+        }
+        const rows = names
+          .map((s) => {
+            const v = secs[s];
+            const pct = Math.round((v.coverage ?? 0) * 100);
+            const cls =
+              (v.coverage ?? 0) >= 0.6
+                ? ""
+                : (v.coverage ?? 0) >= 0.4
+                  ? "mid"
+                  : "low";
+            const miss = Array.isArray(v.missing)
+              ? v.missing
+                  .map((m) => `<span class="chip miss">✕ ${esc(m)}</span>`)
+                  .join("")
+              : "";
+            return (
+              `<div class="bar-row"><div class="bar-head"><span>${esc(s)}</span><span class="pct">${pct}% · ${v.matched ?? 0}/${v.total ?? (v.matched ?? 0) + (Array.isArray(v.missing) ? v.missing.length : 0)}</span></div>` +
+              `<div class="bar${cls}"><div style="width:${pct}%"></div></div>${miss ? `<div class="chips">${miss}</div>` : ""}</div>`
+            );
+          })
+          .join("");
+        const chips = cl
+          ? `<div class="chips">${(cl.matched || []).map((m) => `<span class="chip nice">✓ ${esc(m)}</span>`).join("")}${(cl.missing || []).map((m) => `<span class="chip miss">✕ ${esc(m)}</span>`).join("")}</div>`
+          : "";
+        return (
+          `<div class="scorecard"><div class="sc-head"><div class="score-grade ${gcls}">${grade}</div>` +
+          `<div>ATS match · ${Math.round(avg * 100)}% required-skill coverage${fb.weakest_section ? ` · weakest: <strong>${esc(fb.weakest_section)}</strong>` : ""}</div></div>${chips}${rows}</div>`
+        );
+      }
+      async function openChat(id, silent) {
+        chatId = id;
+        localStorage.setItem("knap.chatId", id);
+        renderThreads();
+        const main = document.getElementById("chat-main");
+        main.innerHTML = `<div class="empty-chat"><span class="spin"></span>Loading application…</div>`;
+        try {
+          const t = await api(`/api/chats/${id}`);
+          currentChat = t;
+          const head =
+            `<div class="chat-head"><div class="avatar">${esc(((t.company || t.title || "?")[0] || "?").toUpperCase())}</div>` +
+            `<div><div class="tt">${esc(t.title)}</div><div class="ts">${t.jd_id ? esc((t.job_title || "") + (t.company ? " @ " + t.company : "")) + " · " + esc(t.role_type || "") : "application #" + t.id + " · no JD yet"}</div></div>` +
+            `<div class="acts"><button class="icon-btn" onclick="deleteChat(${t.id})">delete</button></div></div>`;
+          let bubbles = "";
+          if (t.jd) {
+            const reqs = (t.jd.requirements || [])
+              .filter((r) => r.category === "required")
+              .map((r) => r.skill);
+            const nice = (t.jd.requirements || [])
+              .filter((r) => r.category !== "required")
+              .map((r) => r.skill);
+            bubbles +=
+              `<div class="bubble in"><div class="who">📋 Job description</div>` +
+              `<div><strong>${esc(t.jd.job_title || "Role")}</strong>${t.jd.company ? " @ " + esc(t.jd.company) : ""} <span class="chip role">${esc(t.jd.role_type || "?")}</span></div>` +
+              `<div class="chips">${reqs.map((s) => `<span class="chip req">${esc(s)}</span>`).join("")}${nice.map((s) => `<span class="chip nice">${esc(s)}</span>`).join("")}</div>` +
+              `<div class="time">${shortTime(t.created_at)}</div></div>`;
+          } else {
+            bubbles += `<div class="bubble in"><div class="who">📋 Job description</div>No JD attached yet — paste one with “Attach JD” below.<div class="time">${shortTime(t.created_at)}</div></div>`;
+          }
+          for (const r of t.runs || []) {
+            const fb = r.feedback || {};
+            if (fb.kind === "tailor") {
+              bubbles +=
+                `<div class="bubble out"><div class="who">✉️ Tailored PDFs · run #${r.id}</div>` +
+                `<div><strong>${esc(fb.job_title || "Role")}</strong>${fb.company ? " @ " + esc(fb.company) : ""}</div>` +
+                `<div class="dl-grid"><a class="dl-card" href="/api/runs/${r.id}/download/resume" download><div class="dl-label">📄 Resume</div><div class="dl-cta">↓ Download</div></a>` +
+                `<a class="dl-card" href="/api/runs/${r.id}/download/cover" download><div class="dl-label">✉️ Cover letter</div><div class="dl-cta">↓ Download</div></a></div>` +
+                `<div class="time">${shortTime(r.created_at)}</div></div>`;
+              continue;
+            }
+            bubbles +=
+              `<div class="bubble out"><div class="who">📊 ATS analysis · run #${r.id}</div>` +
+              (fb.weakest_section
+                ? `<div><strong>Weakest: ${esc(fb.weakest_section)}</strong> — ${esc(fb.reasoning || "")}</div>`
+                : `<div>${esc(fb.reasoning || "No gaps found — strong match.")}</div>`) +
+              scorecardHTML(fb) +
+              `<div class="time">${shortTime(r.created_at)}</div></div>`;
+          }
+          main.innerHTML =
+            head +
+            `<div class="timeline" id="timeline">${bubbles}</div>` +
+            `<div class="composer"><div class="row">` +
+            `<button class="btn-primary" onclick="chatRun()">▶ Run analysis</button>` +
+            `<button class="btn-line" onclick="chatRerun()">↻ Re-run + diff</button>` +
+            `<button class="btn-line" onclick="chatAllocate()">🧮 Allocation</button>` +
+            (t.jd_id
+              ? ""
+              : `<button class="btn-line" onclick="chatAttach()">📋 Attach JD</button>`) +
+            `<button class="btn-line" onclick="chatTailorForm()">✉️ Tailor PDFs</button>` +
+            `</div><div id="chat-extra"></div><div id="chat-tailor"></div></div>`;
+          const tl = document.getElementById("timeline");
+          tl.scrollTop = tl.scrollHeight;
+        } catch (e) {
+          if (!silent) showErr(e.message);
+        }
+      }
+      async function chatRun() {
+        if (!currentChat?.jd_id)
+          return showErr("Attach a JD to this chat first.");
+        const extra = document.getElementById("chat-extra");
+        extra.innerHTML =
+          '<div class="muted"><span class="spin"></span>Scoring facts + knapsack allocation + gap analysis…</div>';
+        try {
+          const r = await postJSON("/api/runs", {
+            profile_id: profileId,
+            jd_id: currentChat.jd_id,
+          });
+          hideErr();
+          toast("Analysis complete", "ok");
+          await loadThreads();
+          openChat(chatId, true);
+          const tl = document.getElementById("timeline");
+          if (tl) tl.scrollTop = tl.scrollHeight;
+        } catch (e) {
+          showErr(e.message);
+          extra.innerHTML = "";
+        }
+      }
+      async function chatRerun() {
+        const extra = document.getElementById("chat-extra");
+        const last = (currentChat?.runs || []).slice(-1)[0];
+        if (!last) return showErr("No runs yet — run an analysis first.");
+        extra.innerHTML =
+          '<div class="muted"><span class="spin"></span>Re-running after your edits…</div>';
+        try {
+          const r = await postJSON(`/api/runs/${last.id}/rerun`, {});
+          hideErr();
+          toast("Re-run complete", "ok");
+          await loadThreads();
+          openChat(chatId, true);
+          const d =
+            Object.entries(r.diff || {})
+              .map(([s, v]) => {
+                const tags = [
+                  ...(v.newly_matched || []).map(
+                    (m) => `<span class="chip nice">+ ${esc(m)}</span>`,
+                  ),
+                  ...(v.newly_missing || []).map(
+                    (m) => `<span class="chip miss">− ${esc(m)}</span>`,
+                  ),
+                ].join("");
+                return `<div class="muted">${esc(s)}: ${v.delta == null ? "?" : (v.delta >= 0 ? "+" : "") + Number(v.delta).toFixed(2)}</div>${tags ? `<div class="chips">${tags}</div>` : ""}`;
+              })
+              .join("") || '<div class="muted">No section changes.</div>';
+          document.getElementById("chat-extra").innerHTML =
+            `<div class="callout ok">↻ Re-run #${r.run_id} vs #${r.prev_run_id}:</div>` +
+            d;
+        } catch (e) {
+          showErr(e.message);
+          extra.innerHTML = "";
+        }
+      }
+      async function chatAllocate() {
+        if (!currentChat?.jd_id)
+          return showErr("Attach a JD to this chat first.");
+        const extra = document.getElementById("chat-extra");
+        extra.innerHTML =
+          '<div class="muted"><span class="spin"></span>Running knapsack allocator…</div>';
+        try {
+          const a = await postJSON("/api/allocate", {
+            profile_id: profileId,
+            jd_id: currentChat.jd_id,
+          });
+          hideErr();
+          extra.innerHTML =
+            `<div class="callout ok">🧮 Knapsack picked <strong>${a.selected_count}</strong> facts, dropped <strong>${a.dropped_count}</strong> · total utility ${Number(a.total_utility).toFixed(2)}. ★ mandatory facts are always kept.</div>` +
+            Object.entries(a.sections)
+              .map(([s, v]) => {
+                const pct = v.capacity
+                  ? Math.min(
+                      100,
+                      Math.round((v.total_weight / v.capacity) * 100),
+                    )
+                  : 100;
+                const sel = v.selected
+                  .map(
+                    (f) =>
+                      `<li><span class="sec">${esc(f.section)}</span>${f.is_mandatory ? '<span style="color:var(--warn)">★</span>' : ""}<span>${esc(f.content)}${f.utility != null ? ` <span style="color:var(--faint)">· u=${Number(f.utility).toFixed(2)}</span>` : ""}</span></li>`,
+                  )
+                  .join("");
+                const drop = v.dropped
+                  .map(
+                    (f) =>
+                      `<li class="dropped"><span class="sec">${esc(f.section)}</span><span>${esc(f.content)}</span></li>`,
+                  )
+                  .join("");
+                return `<div class="field-label" style="margin-top:12px">${esc(s)} — ${v.selected.length} kept / ${v.dropped.length} dropped · ${v.total_weight}/${v.capacity} chars (${pct}%)</div><ul class="facts" style="max-height:190px">${sel}${drop}</ul>`;
+              })
+              .join("");
+        } catch (e) {
+          showErr(e.message);
+          extra.innerHTML = "";
+        }
+      }
+      async function chatAttach() {
+        document.getElementById("attach-jd-text").value = "";
+        document.getElementById("attach-jd-fn").style.display = "none";
+        document.getElementById("attach-jd-file").value = "";
+        try {
+          const jds = await api("/api/jds");
+          document.getElementById("attach-jd-existing").innerHTML =
+            '<option value="">— none —</option>' +
+            jds
+              .map(
+                (j) =>
+                  `<option value="${j.id}">#${j.id} ${esc(j.job_title || "Role")}${j.company ? " @ " + esc(j.company) : ""}</option>`,
+              )
+              .join("");
+        } catch (e) {}
+        document
+          .querySelectorAll("#attach-veil .tab")
+          .forEach((t) =>
+            t.classList.toggle("active", t.dataset.p === "ap-text"),
+          );
+        document
+          .querySelectorAll("#attach-veil .tab-panel")
+          .forEach((p) => p.classList.toggle("active", p.id === "ap-text"));
+        document.getElementById("attach-veil").classList.add("open");
+        setTimeout(() => document.getElementById("attach-jd-text").focus(), 50);
+      }
+      function closeAttach() {
+        document.getElementById("attach-veil").classList.remove("open");
+      }
+      async function attachJDById(jdId) {
+        await api(`/api/chats/${chatId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jd_id: jdId }),
+        });
+        closeAttach();
+        hideErr();
+        toast("JD attached", "ok");
+        await loadThreads();
+        openChat(chatId, true);
+      }
+      async function attachJDText() {
+        const text = document.getElementById("attach-jd-text").value.trim();
+        if (!text) return showErr("Paste the job description first.");
+        try {
+          const jd = await postJSON("/api/jds", { raw_text: text });
+          await attachJDById(jd.id);
+        } catch (e) {
+          showErr(e.message);
+        }
+      }
+      async function attachJDFile() {
+        const f = document.getElementById("attach-jd-file").files[0];
+        if (!f) return showErr("Choose a job file first.");
+        const fd = new FormData();
+        fd.append("jd_file", f);
+        try {
+          const r = await fetch("/api/jds", { method: "POST", body: fd });
+          const jd = await r.json();
+          if (jd.error) throw new Error(jd.error);
+          await attachJDById(jd.id);
+        } catch (e) {
+          showErr(e.message);
+        }
+      }
+      async function attachJDExisting() {
+        const id = Number(document.getElementById("attach-jd-existing").value);
+        if (!id) return showErr("Select a job first.");
+        try {
+          await attachJDById(id);
+        } catch (e) {
+          showErr(e.message);
+        }
+      }
+      document
+        .getElementById("attach-jd-file")
+        .addEventListener("change", function () {
+          const el = document.getElementById("attach-jd-fn");
+          el.textContent = this.files[0] ? "✓ " + this.files[0].name : "";
+          el.style.display = this.files[0] ? "block" : "none";
+        });
+      document.querySelectorAll("#attach-veil .tab").forEach((tab) =>
+        tab.addEventListener("click", () => {
+          document
+            .querySelectorAll("#attach-veil .tab")
+            .forEach((t) => t.classList.remove("active"));
+          tab.classList.add("active");
+          document
+            .querySelectorAll("#attach-veil .tab-panel")
+            .forEach((p) => p.classList.remove("active"));
+          document.getElementById(tab.dataset.p).classList.add("active");
+        }),
+      );
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          closeAttach();
+          closeNewChat();
+        }
+        if (
+          e.key === "/" &&
+          document.activeElement.tagName !== "INPUT" &&
+          document.activeElement.tagName !== "TEXTAREA" &&
+          currentView === "chats"
+        ) {
+          e.preventDefault();
+          document.getElementById("chat-search").focus();
+        }
+      });
+      // ── Tailor inside a chat ──
+      const MODELS = {
+        claude: [
+          { v: "claude-opus-4-5", l: "Claude Opus 4.5" },
+          { v: "claude-sonnet-4-6", l: "Claude Sonnet 4.6" },
+          { v: "claude-haiku-4-5-20251001", l: "Claude Haiku 4.5" },
+        ],
+        gemini: [
+          { v: "gemini-3.5-flash-lite", l: "Gemini 2.5 Flash" },
+          { v: "gemini-3.5-flash-lite-lite", l: "Gemini 2.5 Flash-Lite" },
+          { v: "gemini-2.5-pro", l: "Gemini 2.5 Pro" },
+        ],
+      };
+      function tailorModels() {
+        const p = document.getElementById("t-provider").value;
+        document.getElementById("t-model").innerHTML = MODELS[p]
+          .map((m) => `<option value="${m.v}">${m.l}</option>`)
+          .join("");
+        const k = p === "claude" ? "__ANTHROPIC_KEY__" : "__GEMINI_KEY__";
+        document.getElementById("t-apikey").value = k.startsWith("__") ? "" : k;
+        document.getElementById("provider-note").textContent =
+          p === "claude"
+            ? "Needs an Anthropic key — see anthropic.com dashboard."
+            : "Needs a Google AI key — see aistudio.google.com.";
+      }
+      function chatTailorForm() {
+        if (!currentChat?.jd_id)
+          return showErr("Attach a JD to this chat first.");
+        document.getElementById("chat-tailor").innerHTML =
+          `<div class="row-2" style="margin-top:12px"><div><div class="field-label"><label for="t-provider">Provider</label></div>` +
+          `<select id="t-provider" onchange="tailorModels()"><option value="claude">Claude</option><option value="gemini">Gemini</option></select></div>` +
+          `<div><div class="field-label"><label for="t-model">Model</label></div><select id="t-model"></select></div></div>` +
+          `<div class="field-label"><label for="t-apikey">API Key</label></div><div class="key-wrap"><input type="password" id="t-apikey" placeholder="Paste API key (or leave blank for server .env key)">` +
+          `<button class="key-toggle" aria-label="Show key" onclick="const i=document.getElementById('t-apikey');i.type=i.type==='password'?'text':'password'">👁</button></div>` +
+          `<div class="muted" id="provider-note"></div>` +
+          `<div class="muted">Only knapsack-selected facts are sent to the model. Unsupported claims are blocked before PDF export.</div>` +
+          `<button class="btn-go" onclick="chatTailor()">Tailor PDFs for this application →</button><div id="t-prog"></div><div id="t-out"></div>`;
+        tailorModels();
+      }
+      const TAILOR_STEPS = [
+        "Reading JD + resume facts",
+        "Company context",
+        "Tailoring resume",
+        "Cover letter",
+        "Building PDFs",
+      ];
+      async function chatTailor() {
+        const provider = document.getElementById("t-provider").value;
+        const model = document.getElementById("t-model").value;
+        const apiKey = document.getElementById("t-apikey").value.trim();
+        if (!apiKey && !confirm("No API key — try server-side keys from .env?"))
+          return;
+        const prog = document.getElementById("t-prog"),
+          out = document.getElementById("t-out");
+        prog.innerHTML =
+          '<div class="prog-card"><div class="prog-title">Tailoring…</div><ul class="steps">' +
+          TAILOR_STEPS.map(
+            (s, i) =>
+              `<li class="step${i === 0 ? " active" : ""}" id="ts-${i}"><span class="dot-s"></span>${s}</li>`,
+          ).join("") +
+          "</ul></div>";
+        out.innerHTML = "";
+        const mark = (n) => {
+          TAILOR_STEPS.forEach((_, i) => {
+            const el = document.getElementById("ts-" + i);
+            if (el)
+              el.className =
+                "step" + (i < n ? " done" : i === n ? " active" : "");
+          });
+        };
+        try {
+          const [jd, facts] = await Promise.all([
+            api(`/api/chats/${chatId}`).then((c) => api(`/api/jds/${c.jd_id}`)),
+            api(`/api/profile/${profileId}/facts`),
+          ]);
+          if (!facts.length)
+            throw new Error("Profile has no facts — add some in step 2.");
+          mark(1);
+          const fd = new FormData();
+          fd.append("provider", provider);
+          fd.append("model", model);
+          fd.append("api_key", apiKey);
+          fd.append("profile_id", String(profileId));
+          fd.append("jd_id", String(currentChat.jd_id));
+          fd.append("job_text", jd.raw_text);
+          fd.append(
+            "resume_text",
+            facts.map((f) => `[${f.section}] ${f.content}`).join("\n"),
+          );
+          const { job_id } = await (
+            await fetch("/api/tailor", { method: "POST", body: fd })
+          )
+            .json()
+            .then((b) => {
+              if (b.error) throw new Error(b.error);
+              return b;
+            });
+          mark(2);
+          const st = await new Promise((resolve, reject) => {
+            const iv = setInterval(async () => {
+              try {
+                const s = await api(`/api/status/${job_id}`);
+                mark(Math.min(4, s.step ?? 0));
+                if (s.status === "done") {
+                  clearInterval(iv);
+                  resolve(s);
+                } else if (s.status === "error") {
+                  clearInterval(iv);
+                  reject(new Error(s.error || "Tailoring failed"));
+                }
+              } catch (e) {
+                clearInterval(iv);
+                reject(e);
+              }
+            }, 1500);
+          });
+          mark(4);
+          prog.innerHTML = "";
+          out.innerHTML =
+            `<div class="callout ok">✅ Tailored for <strong>${esc(st.job_title || "")}</strong>${st.company ? " @ " + esc(st.company) : ""} — posted to this timeline ↓</div>` +
+            `<div class="dl-grid"><a class="dl-card" href="/api/download/${job_id}/resume" download><div class="dl-label">📄 Tailored Resume</div><div class="dl-cta">↓ Download PDF</div></a>` +
+            `<a class="dl-card" href="/api/download/${job_id}/cover" download><div class="dl-label">✉️ Cover Letter</div><div class="dl-cta">↓ Download PDF</div></a></div>`;
+          hideErr();
+          toast("PDFs ready", "ok");
+          await loadThreads();
+          openChat(chatId, true);
+        } catch (e) {
+          prog.innerHTML = "";
+          showErr(e.message);
+        }
+      }
+
+      // ── Boot ──
+      (async function boot() {
+        try {
+          await loadProfiles();
+          backendMode = true;
+          setBadge(true, "● Backend connected · 1 profile : N JD chats");
+          document.getElementById("foot-status").textContent = "connected ✓";
+          if (profileId) {
+            const ps = await api("/api/profiles").then((ps) =>
+              ps.find((p) => p.id === profileId),
+            );
+            profileName = ps ? ps.name : "";
+            go("chats");
+          }
+        } catch (e) {
+          backendMode = false;
+          setBadge(
+            false,
+            "○ Backend offline — run `python app.py`, then reload",
+          );
+          document.getElementById("foot-status").textContent =
+            "offline — start `python app.py`";
+        }
+      })();
+    </script>
+  </body>
 </html>

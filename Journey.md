@@ -64,6 +64,41 @@
 
 ---
 
+### [2026-10-04] Iteration Entry: Version v1.1 Planning (P0+P1+P2 — Single-Doc Ingestion & Fact Quality)
+- **Author:** Agent + Human
+- **Status:** Planned (build not started)
+
+#### 1. Objective & Scope
+User reported: ingestion pulls irrelevant content; fact add/modify is tedious; claimed facts badly formatted. Prior research confirmed root causes (ALL-CAPS/`|` over-match, append-only ingest, free-text sections, `instruct.md` humanizer misused as resume prompt, legacy `/api/tailor` bypass). User chose Google Doc (Docs API) as single user source-of-truth + keep full P2 bulk tools. Plan v1.1 as P0 (prompt/format) + P1 (GDoc sync) + P2 (bulk curation).
+
+#### 2. Key Decisions & Technical Reasoning
+- **Decision:** v1.1 (not v2) — P0+P1+P2 as patch-track; v2 LaTeX roadmap untouched.
+  - **Reasoning:** Fixes correctness/UX of current pipeline without schema or renderer change.
+  - **Alternatives Considered & Rejected:** GCS-bucket PDF/DOCX (keeps pdfplumber noise) / Drive export TXT (loses headings) — rejected; Docs API structuralElements preferred. Doc-only editing without P2 — rejected per user (keep P2 for cleanup/offline).
+- **Decision:** P0 first (no GCP dependency), then P1 SA readonly + share-to-SA, then P2 additive bulk APIs.
+  - **Reasoning:** P0 unblocks formatting even if GCP setup stalls; P1 makes editing lazy; P2 pays off in one 50-fact cleanup.
+- **Decision:** No DB migration; `gdoc_rev` cached in `profiles.sections`; last-write-wins + diff preview on Doc/UI divergence.
+  - **Reasoning:** Keeps rollback to route-disable + prompt-loader revert.
+
+#### 3. Code & Configuration Changes
+- `progress.md`: dashboard → v1.1 active track; new `## 🚀 Version v1.1 Roadmap` (v1.1.0/v1.1.1/v1.1.2 stages + gates); milestone row.
+- `VERSIONS.md`: new `## Version 1.1 (Planned)` scope + file inventory + gates.
+- `Journey.md`: this entry.
+- No runtime code changed.
+
+#### 4. Edge Cases, Failures & Mitigations
+- *SA 403 permission:* setup doc must stress share-to-SA email; preview endpoint surfaces error pre-sync.
+- *Offline Doc:* `gdoc_rev` cache fallback; UI read-only when unreachable.
+- *Doc/UI divergence:* hash diff preview + last-write-wins.
+
+#### 5. Verification & Test Results
+- Planning only. Gates defined: P0 claims roundtrip, P1 live-Doc sync, P2 50-fact bulk — all `pytest -q` green + `py_compile` clean before closing each stage.
+
+#### 6. Next Steps
+- Start **v1.1.0a**: `resume_format.md` + `tailor.py` prompt swap + allocation routing fix.
+
+---
+
 ### [2026-09-29] Iteration Entry: Phase 7 Complete (7.1 ATS Checklist, 7.2 Verify, 7.3 Smoke + Docs)
 - **Author:** Agent
 - **Status:** Completed

@@ -51,6 +51,35 @@ instruct.md                # Anti-AI-writing prompt instructions
 
 ---
 
+## Version 1.1 (Planned — Single-Doc Ingestion & Fact Quality: P0+P1+P2)
+**Status**: Planned, build not started (2026-10-04)
+
+### Scope
+- **P0 — Prompt & formatting fix**: `resume_format.md` replaces `instruct.md` for resume prompts; `normalize_fact()` on all writes; tailor routed via allocation; canonical section order in `render_allocated_resume_text`.
+- **P1 — Google Doc source-of-truth**: `src/gdoc_ingestor.py` (Docs API `documents.get`, SA readonly, H1/H2+bullets strict whitelist) + `sync_profile_from_gdoc()` (hash upsert, `gdoc_rev` cache, offline fallback) + `POST /api/profile/<id>/sync-gdoc` + UI Sync button.
+- **P2 — Bulk curation**: `src/sections.py:canonicalize()`, bulk APIs (`/facts/bulk`, `/facts/delete`, `/facts/normalize`, `?mode=replace`, `/api/meta/sections`), UI select + checkboxes toolbar + bulk-paste tab, CLI `facts import/export/clear`.
+
+### File Inventory (v1.1)
+```
+src/gdoc_ingestor.py    # (NEW) Docs fetch + strict H1/H2 parse + sync
+src/fact_format.py      # (NEW) normalize_fact() + dedup (or in resume_parser.py)
+src/sections.py         # (NEW) canonicalize() shared across layers
+resume_format.md        # (NEW) ATS bullet contract for tailor.py
+src/profile_service.py  # (MOD) normalize on write + bulk helpers
+src/tailor.py           # (MOD) resume_format.md prompt + allocation routing + render order
+app.py                  # (MOD) sync-gdoc + bulk/normalize/meta routes
+main.py                 # (MOD) facts import/export/clear
+docs/index.html         # (MOD) Sync button + bulk toolbar + section select
+docs/privacy.html       # (MOD) Google API data note
+tests/test_fact_format.py, test_gdoc_ingestor.py, test_bulk_facts.py  # (NEW)
+```
+
+### Gates
+- P0: `pytest -q` + claims roundtrip green. P1: live sync vs one real Doc green. P2: 50-fact single-call bulk green.
+- No DB migration (additive only). Rollback: disable sync/bulk routes, revert prompt loader.
+
+---
+
 ## Version 2.0 (Planned — LaTeX Template Engine, Structured Generation & ATS Valuation)
 **Status**: Architecture & Design Finalized, Ready for Execution
 

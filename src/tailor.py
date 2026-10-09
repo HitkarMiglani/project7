@@ -3,7 +3,7 @@ src/tailor.py
 Multi-provider AI tailoring engine.
 Supports:
   - Anthropic Claude  (any model string, e.g. claude-opus-4-5, claude-sonnet-4-6)
-  - Google Gemini     (gemini-2.5-flash, gemini-2.5-flash-lite, gemini-2.5-pro)
+  - Google Gemini     (gemini-3.5-flash-lite, gemini-3.5-flash-lite-lite, gemini-2.5-pro)
 
 Provider + model + API key are passed in at call time so the web UI can
 accept them from the user. Falls back to environment variables for local/CLI use.
@@ -209,7 +209,7 @@ def tailor_resume(
 
     provider: "claude" or "gemini"
     model:    e.g. "claude-opus-4-5", "claude-sonnet-4-6",
-                   "gemini-2.5-flash", "gemini-2.5-flash-lite"
+                   "gemini-3.5-flash-lite", "gemini-3.5-flash-lite-lite"
     api_key:  if blank, falls back to ANTHROPIC_API_KEY / GEMINI_API_KEY env vars
     source_note: optional preface describing the resume source (Stage 3.3
                  passes an allocation note; "" keeps legacy prompts byte-identical).

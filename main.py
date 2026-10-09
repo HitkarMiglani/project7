@@ -74,7 +74,7 @@ def _validate_env() -> None:
 def _resolve_model(provider: str, model: str) -> str:
     if model.strip():
         return model.strip()
-    return "claude-opus-4-5" if provider == "claude" else "gemini-2.5-flash"
+    return "claude-opus-4-5" if provider == "claude" else "gemini-3.5-flash-lite"
 
 
 def _slug(value: str) -> str:
@@ -355,7 +355,7 @@ def tailor(
     output_name: Optional[str] = typer.Option(None, "--output", "-o", help="Base name for output files (no extension)"),
     skip_web: bool = typer.Option(False, "--skip-web", help="Skip web context fetching"),
     provider: str = typer.Option("claude", "--provider", "-p", help="LLM Provider: claude or gemini"),
-    model: str = typer.Option("", "--model", "-m", help="Specific model string (e.g. claude-opus-4-5, gemini-2.5-flash)"),
+    model: str = typer.Option("", "--model", "-m", help="Specific model string (e.g. claude-opus-4-5, gemini-3.5-flash-lite)"),
 ):
     """
     Tailor your resume and generate a cover letter for a specific job.
